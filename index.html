@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>🇰🇷 首爾記帳 · 霈潔&珞熙</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body,#root{height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;-webkit-tap-highlight-color:transparent}
+  input,select,textarea,button{font-family:inherit}
+  input,select{outline:none}
+  select option{background:#fff;color:#1a1a1a}
+  button{cursor:pointer}
+  ::-webkit-scrollbar{width:3px}
+  ::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px}
+  .fade{animation:fadeIn .2s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback,useMemo}=React;
+const {PieChart,Pie,Cell,Tooltip,ResponsiveContainer,BarChart,Bar,XAxis,YAxis}=Recharts;
+
+/* ════════════════════════════════════════
+   CONFIG — GitHub repo 同步
+   ════════════════════════════════════════ */
+const GH_REPO   = "Moomebeauty/Roxi";
+const GH_FILE   = "data/tracker.json";
+const GH_BRANCH = "main";
+const GH_API    = "https://api.github.com";
+const LS_TOKEN  = "seoul_gh_token";
+const getToken  = ()=>localStorage.getItem(LS_TOKEN)||"";
+
+/* ════════════════════════════════════════
+   CONSTANTS
+   ════════════════════════════════════════ */
+const USERS      = ["霈潔","珞熙","共同"];
+const UKEY       = {"霈潔":"pj","珞熙":"lx","共同":"co"};
+const CATEGORIES = ["交通","餐飲","購物","住宿","門票","醫美","彩妝保養品","服飾"];
+const PAY        = ["現金","信用卡","PayPay","T-money"];
+const CAT_CLR    = {交通:"#378ADD",餐飲:"#1D9E75",購物:"#D4537E",住宿:"#7F77DD",門票:"#F9A825",醫美:"#D85A30",彩妝保養品:"#639922",服飾:"#E24B4A"};
+const PAY_CLR    = {現金:"#7F77DD",信用卡:"#1D9E75",PayPay:"#D4537E","T-money":"#378ADD"};
+const BUDGET_DEF = 3000000;
+const TRIP_START = "2026-04-14";
+const TRIP_END   = "2026-04-18";
+
+/* ════════════════════════════════════════
+   UTILS
+   ════════════════════════════════════════ */
+const today  = ()=>new Date().toISOString().slice(0,10);
+const uid    = ()=>Date.now()+"_"+Math.random().toString(36).slice(2,6);
+const krwFmt = v=>`₩${Math.round(Number(v)||0).toLocaleString()}`;
+const twdFmt = (v,r)=>r?`NT$${Math.round((Number(v)||0)*r).toLocaleString()}`:"";
+const clamp  = (v,min,max)=>Math.min(max,Math.max(min,v));
+const sum    = (arr,key)=>arr.reduce((s,r)=>s+(Number(r[key])||0),0);
+
+function newReceipt(user){
+  return{id:uid(),user,date:today(),store:"",items:"",amount:"",category:"購物",payMethod:"現金",note:"",img:""};
+}
+
+/* ════════════════════════════════════════
+   EMPTY STATE
+   ════════════════════════════════════════ */
+const EMPTY_DATA = {
+  receipts:{pj:[],lx:[],co:[]},
+  budgets:{pj:BUDGET_DEF,lx:BUDGET_DEF,co:1000000},
+  updatedAt:""
+};
+
+/* ════════════════════════════════════════
+   GITHUB API
+   ════════════════════════════════════════ */
+const ghHeaders = ()=>({
+  "Authorization":`token ${getToken()}`,
+  "Content-Type":"application/json",
+  "Accept":"application/vnd.github+json"
+});
+
+async function ghGet(){
+  const res = await fetch(`${GH_API}/repos/${GH_REPO}/contents/${GH_FILE}?ref=${GH_BRANCH}&t=${Date.now()}`,{headers:ghHeaders()});
+  if(res.status===404) return {data:EMPTY_DATA, sha:null};
+  if(!res.ok) throw new Error(`讀取失敗 ${res.status}`);
+  const json = await res.json();
+  const raw  = atob(json.content.replace(/\n/g,""));
+  return {data:JSON.parse(raw), sha:json.sha};
+}
+
+async function ghPut(data, sha){
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+  const body    = {message:`update ${new Date().toISOString()}`,content,branch:GH_BRANCH};
+  if(sha) body.sha = sha;
+  const res = await fetch(`${GH_API}/repos/${GH_REPO}/contents/${GH_FILE}`,{
+    method:"PUT", headers:ghHeaders(), body:JSON.stringify(body)
+  });
+  if(!res.ok){
+    const err = await res.json();
+    throw new Error(err.message||`儲存失敗 ${res.status}`);
+  }
+  const json = await res.json();
+  return json.content?.sha;
+}
+
+/* ════════════════════════════════════════
+   EXCHANGE RATE
+   ════════════════════════════════════════ */
+async function fetchRate(){
+  try{
+    const r=await fetch("https://api.exchangerate-api.com/v4/latest/KRW");
+    const d=await r.json();
+    return d.rates?.TWD||null;
+  }catch{return null;}
+}
+
+/* ════════════════════════════════════════
+   CLAUDE VISION
+   ════════════════════════════════════════ */
+async function scanReceipt(b64){
+  const prompt=`這是韓國收據。請以純JSON格式回答（不含markdown，不含其他文字）：
+{"store":"店名（繁體中文）","items":"品項（繁體中文，逗號分隔）","amount":"金額（數字，韓元）","category":"從以下選一：交通/餐飲/購物/住宿/門票/醫美/彩妝保養品/服飾","note":"備註"}`;
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      model:"claude-sonnet-4-20250514",max_tokens:500,
+      messages:[{role:"user",content:[
+        {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
+        {type:"text",text:prompt}
+      ]}]
+    })
+  });
+  const d=await res.json();
+  const text=d.content?.[0]?.text||"{}";
+  return JSON.parse(text.replace(/```json|```/g,"").trim());
+}
+
+/* ════════════════════════════════════════
+   EXCEL EXPORT
+   ════════════════════════════════════════ */
+function exportXLSX(receipts,rate){
+  const all=[...receipts.pj,...receipts.lx,...receipts.co].sort((a,b)=>a.date.localeCompare(b.date));
+  const rows=[
+    ["日期","使用者","店名","品項","金額(KRW)","金額(TWD)","類別","付款方式","備註"],
+    ...all.map(r=>[r.date,r.user,r.store,r.items,Number(r.amount)||0,
+      rate?Math.round((Number(r.amount)||0)*rate):"",r.category,r.payMethod,r.note]),
+    [],[" 總計","","","",all.reduce((s,r)=>s+(Number(r.amount)||0),0),
+      rate?Math.round(all.reduce((s,r)=>s+(Number(r.amount)||0),0)*rate):"","","",""]
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"]=[10,8,18,22,14,12,14,10,18].map(w=>({wch:w}));
+  ["A1","B1","C1","D1","E1","F1","G1","H1","I1"].forEach(c=>{
+    if(ws[c])ws[c].s={font:{bold:true},fill:{fgColor:{rgb:"E8F5EF"}}};
+  });
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"首爾消費紀錄");
+  XLSX.writeFile(wb,`首爾消費_${today()}.xlsx`);
+}
+
+/* ════════════════════════════════════════
+   COMPONENTS
+   ════════════════════════════════════════ */
+
+function ProgressBar({pct,color}){
+  const c=color||(pct>80?"#E24B4A":pct>60?"#F9A825":"#1D9E75");
+  return(
+    <div style={{height:7,borderRadius:4,background:"#ededeb",overflow:"hidden"}}>
+      <div style={{width:`${clamp(pct,0,100)}%`,height:"100%",background:c,borderRadius:4,transition:"width .4s ease"}}/>
+    </div>
+  );
+}
+
+function Badge({label,color}){
+  return <span style={{fontSize:10,padding:"2px 7px",borderRadius:10,background:color+"22",color,fontWeight:500,whiteSpace:"nowrap"}}>{label}</span>;
+}
+
+function SyncBar({status,msg,onSync}){
+  const clr={idle:"#aaa",syncing:"#F9A825",ok:"#1D9E75",err:"#E24B4A"}[status];
+  const lbl={idle:"未同步",syncing:"同步中…",ok:"✓ 已同步",err:"✗ 同步失敗"}[status];
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:8,fontSize:11}}>
+      <span style={{color:clr,fontWeight:500}}>{lbl}</span>
+      {msg&&<span style={{color:"#aaa"}}>{msg}</span>}
+      {status!=="syncing"&&<button onClick={onSync} style={{padding:"2px 8px",borderRadius:6,border:"0.5px solid #d0d0ce",background:"transparent",color:"#888",fontSize:10}}>↻</button>}
+    </div>
+  );
+}
+
+function ReceiptCard({r,rate,onEdit,onDel,full}){
+  const clr=CAT_CLR[r.category]||"#888";
+  return(
+    <div className="fade" style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:14,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.store||"（未命名）"}</div>
+          {r.items&&<div style={{fontSize:11,color:"#999",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.items}</div>}
+        </div>
+        <div style={{textAlign:"right",flexShrink:0}}>
+          <div style={{fontSize:15,fontWeight:700}}>{krwFmt(r.amount)}</div>
+          {rate&&<div style={{fontSize:10,color:"#aaa"}}>{twdFmt(r.amount,rate)}</div>}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:5,marginTop:8,flexWrap:"wrap",alignItems:"center"}}>
+        <span style={{fontSize:10,color:"#bbb"}}>{r.date}</span>
+        <Badge label={r.category} color={clr}/>
+        <Badge label={r.payMethod} color="#888"/>
+        <Badge label={r.user} color="#534AB7"/>
+        {r.note&&<span style={{fontSize:10,color:"#ccc"}}>{r.note}</span>}
+      </div>
+      {full&&(
+        <div style={{display:"flex",gap:6,marginTop:10,borderTop:"0.5px solid #f0f0ee",paddingTop:10}}>
+          <button onClick={()=>onEdit(r)} style={{padding:"5px 14px",borderRadius:7,border:"0.5px solid #d0d0ce",background:"transparent",color:"#1a1a1a",fontSize:11,fontWeight:500}}>編輯</button>
+          <button onClick={()=>{if(confirm("確定刪除？"))onDel(r.id,UKEY[r.user]||"pj")}} style={{padding:"5px 12px",borderRadius:7,border:"0.5px solid #fcc",background:"transparent",color:"#E24B4A",fontSize:11}}>刪除</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════
+   MAIN APP
+   ════════════════════════════════════════ */
+function App(){
+  const [token,    setToken]    = useState(()=>localStorage.getItem(LS_TOKEN)||"");
+  const [tokenInput,setTokenInput]=useState("");
+  const [data,     setData]     = useState(EMPTY_DATA);
+  const [sha,      setSha]      = useState(null);
+  const [rate,     setRate]     = useState(null);
+  const [tab,      setTab]      = useState("dash");
+  const [activeU,  setActiveU]  = useState("霈潔");
+  const [viewU,    setViewU]    = useState("全部");
+  const [catF,     setCatF]     = useState("全部");
+  const [showForm, setShowForm] = useState(false);
+  const [form,     setForm]     = useState(null);
+  const [editId,   setEditId]   = useState(null);
+  const [scanLoad, setScanLoad] = useState(false);
+  const [scanMsg,  setScanMsg]  = useState("");
+  const [budEdit,  setBudEdit]  = useState(false);
+  const [budVal,   setBudVal]   = useState("");
+  const [syncSt,   setSyncSt]   = useState("idle");
+  const [syncMsg,  setSyncMsg]  = useState("");
+  const [loading,  setLoading]  = useState(true);
+  const fileRef = useRef();
+  const shaRef  = useRef(null);
+
+  function handleSaveToken(){
+    const t=tokenInput.trim();
+    if(!t.startsWith("ghp_")){alert("Token 格式不對，應以 ghp_ 開頭");return;}
+    localStorage.setItem(LS_TOKEN,t);
+    setToken(t);
+  }
+
+  /* init */
+  useEffect(()=>{
+    if(!token)return;
+    Promise.all([
+      ghGet().then(({data:d,sha:s})=>{setData(d);setSha(s);shaRef.current=s;setSyncSt("ok");setSyncMsg("已載入")}).catch(e=>{setSyncSt("err");setSyncMsg(e.message)}),
+      fetchRate().then(setRate)
+    ]).finally(()=>setLoading(false));
+  },[token]);
+
+  if(!token) return(
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f7f7f5",padding:20}}>
+      <div style={{background:"#fff",borderRadius:20,padding:"32px 24px",maxWidth:400,width:"100%",border:"0.5px solid #e8e8e6"}}>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:40,marginBottom:8}}>🇰🇷</div>
+          <div style={{fontSize:18,fontWeight:700}}>首爾旅遊記帳</div>
+          <div style={{fontSize:12,color:"#aaa",marginTop:4}}>霈潔 & 珞熙 · 2026/04/14–18</div>
+        </div>
+        <div style={{fontSize:12,color:"#888",marginBottom:6,fontWeight:600}}>輸入 GitHub Token（只存在你的裝置）</div>
+        <input value={tokenInput} onChange={e=>setTokenInput(e.target.value)} placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" type="password"
+          style={{width:"100%",padding:"11px 12px",borderRadius:10,border:"0.5px solid #d0d0ce",fontSize:13,marginBottom:8}}/>
+        <div style={{fontSize:11,color:"#aaa",marginBottom:16,lineHeight:1.7}}>
+          Token 只存在瀏覽器，不會出現在程式碼。<br/>
+          需要勾選 <strong>repo</strong> 權限。<br/>
+          霈潔和珞熙各自在自己手機輸入同一個 Token。
+        </div>
+        <button onClick={handleSaveToken} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"#1D9E75",color:"#fff",fontSize:15,fontWeight:700}}>開始使用</button>
+        <button onClick={()=>{localStorage.removeItem(LS_TOKEN);}} style={{width:"100%",padding:"8px",borderRadius:12,border:"none",background:"transparent",color:"#ccc",fontSize:11,marginTop:8}}>清除已儲存的 Token</button>
+      </div>
+    </div>
+  );
+
+  /* auto pull every 45s */
+  useEffect(()=>{
+    const t=setInterval(()=>pull(true),45000);
+    return()=>clearInterval(t);
+  },[]);
+
+  async function pull(silent=false){
+    if(!silent)setSyncSt("syncing");
+    try{
+      const {data:d,sha:s}=await ghGet();
+      setData(d);setSha(s);shaRef.current=s;
+      if(!silent){setSyncSt("ok");setSyncMsg(new Date().toTimeString().slice(0,5)+" 同步");}
+    }catch(e){if(!silent){setSyncSt("err");setSyncMsg(e.message);}}
+  }
+
+  async function push(newData){
+    setSyncSt("syncing");
+    try{
+      const payload={...newData,updatedAt:new Date().toISOString()};
+      const newSha=await ghPut(payload,shaRef.current);
+      setSha(newSha);shaRef.current=newSha;
+      setData(payload);
+      setSyncSt("ok");setSyncMsg(new Date().toTimeString().slice(0,5)+" 已存");
+    }catch(e){
+      setSyncSt("err");setSyncMsg(e.message);
+      if(e.message.includes("409")||e.message.includes("conflict")){
+        setSyncMsg("衝突！重新拉取中…");
+        await pull();
+      }
+    }
+  }
+
+  /* derived */
+  const receipts=data.receipts||{pj:[],lx:[],co:[]};
+  const budgets =data.budgets ||{pj:BUDGET_DEF,lx:BUDGET_DEF,co:1000000};
+
+  const baseR = useMemo(()=>{
+    if(viewU==="全部") return [...(receipts.pj||[]),...(receipts.lx||[]),...(receipts.co||[])];
+    return receipts[UKEY[viewU]]||[];
+  },[receipts,viewU]);
+
+  const filtR  = useMemo(()=>catF==="全部"?baseR:baseR.filter(r=>r.category===catF),[baseR,catF]);
+  const sortedR= useMemo(()=>[...filtR].sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id)),[filtR]);
+
+  const tod        = today();
+  const todayTotal = baseR.filter(r=>r.date===tod).reduce((s,r)=>s+(Number(r.amount)||0),0);
+  const tripTotal  = baseR.reduce((s,r)=>s+(Number(r.amount)||0),0);
+  const activeBud  = viewU==="全部"?Object.values(budgets).reduce((s,v)=>s+v,0):(budgets[UKEY[viewU]]||BUDGET_DEF);
+  const budPct     = clamp(activeBud>0?Math.round(tripTotal/activeBud*100):0,0,100);
+
+  const catData = useMemo(()=>CATEGORIES.map(c=>({name:c,value:baseR.filter(r=>r.category===c).reduce((s,r)=>s+(Number(r.amount)||0),0)})).filter(d=>d.value>0),[baseR]);
+  const payData = useMemo(()=>PAY.map(p=>({name:p,value:baseR.filter(r=>r.payMethod===p).reduce((s,r)=>s+(Number(r.amount)||0),0)})).filter(d=>d.value>0),[baseR]);
+
+  /* actions */
+  function updReceipts(newR){
+    const newData={...data,receipts:newR};
+    setData(newData);
+    push(newData);
+  }
+
+  function handleDel(id,key){
+    const newR={...receipts,[key]:(receipts[key]||[]).filter(r=>r.id!==id)};
+    updReceipts(newR);
+  }
+
+  function handleEdit(r){setForm({...r});setEditId(r.id);setShowForm(true);setScanMsg("");}
+  function handleNew(){setForm(newReceipt(activeU));setEditId(null);setShowForm(true);setScanMsg("");}
+
+  function handleSave(){
+    if(!form)return;
+    const key=UKEY[form.user]||"pj";
+    const list=receipts[key]||[];
+    const newList=editId?list.map(r=>r.id===editId?form:r):[{...form,id:uid()},...list];
+    updReceipts({...receipts,[key]:newList});
+    setShowForm(false);setForm(null);setEditId(null);
+  }
+
+  async function handleImg(e){
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=async ev=>{
+      const b64=ev.target.result.split(",")[1];
+      setForm(f=>({...f,img:b64}));
+      setScanLoad(true);setScanMsg("AI 辨識中…");
+      try{
+        const parsed=await scanReceipt(b64);
+        setForm(f=>({...f,...parsed,img:b64}));
+        setScanMsg("✓ 辨識完成！");
+      }catch{setScanMsg("辨識失敗，請手動填寫");}
+      setScanLoad(false);
+    };
+    reader.readAsDataURL(file);e.target.value="";
+  }
+
+  function handleBudSave(){
+    const v=Number(budVal);if(!v)return;
+    const key=viewU==="全部"?UKEY[activeU]:UKEY[viewU];
+    const newB={...budgets,[key]:v};
+    const newData={...data,budgets:newB};
+    setData(newData);push(newData);
+    setBudEdit(false);
+  }
+
+  if(loading) return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:12}}>
+      <div style={{fontSize:32}}>🇰🇷</div>
+      <div style={{fontSize:13,color:"#888"}}>載入中…</div>
+    </div>
+  );
+
+  return(
+    <div style={{minHeight:"100vh",background:"#f7f7f5",paddingBottom:100}}>
+
+      {/* ── HEADER ── */}
+      <div style={{background:"#fff",borderBottom:"0.5px solid #e8e8e6",padding:"12px 16px",position:"sticky",top:0,zIndex:100}}>
+        <div style={{maxWidth:680,margin:"0 auto"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+            <div>
+              <div style={{fontSize:16,fontWeight:700,letterSpacing:-0.3}}>🇰🇷 首爾旅遊記帳</div>
+              <div style={{fontSize:10,color:"#aaa",marginTop:1}}>{TRIP_START} ～ {TRIP_END} · {rate?`1 KRW=NT$${rate.toFixed(4)}`:"匯率載入中"}</div>
+            </div>
+            <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
+              <SyncBar status={syncSt} msg={syncMsg} onSync={()=>pull()}/>
+              <button onClick={()=>{localStorage.removeItem(LS_TOKEN);window.location.reload();}} style={{padding:"2px 8px",borderRadius:6,border:"0.5px solid #f0d0d0",background:"transparent",color:"#E24B4A",fontSize:10}} title="登出 / 更換 Token">登出</button>
+              <div style={{display:"flex",gap:4}}>
+                {USERS.map(u=>(
+                  <button key={u} onClick={()=>{setActiveU(u);setViewU(u);}} style={{padding:"4px 10px",borderRadius:16,fontSize:11,fontWeight:activeU===u?600:400,background:activeU===u?"#534AB7":"#ededeb",color:activeU===u?"#fff":"#888",border:"none"}}>
+                    {u}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:680,margin:"0 auto",padding:"0 14px"}}>
+
+        {/* ── TABS ── */}
+        <div style={{display:"flex",background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,overflow:"hidden",marginTop:14}}>
+          {[["dash","總覽"],["list","收據列表"],["chart","統計圖表"]].map(([k,v])=>(
+            <button key={k} style={{flex:1,padding:"10px 4px",fontSize:12,fontWeight:tab===k?600:400,textAlign:"center",background:tab===k?"#eef8f4":"transparent",color:tab===k?"#1D9E75":"#888",border:"none",transition:"all .15s"}} onClick={()=>setTab(k)}>{v}</button>
+          ))}
+        </div>
+
+        {/* view filter */}
+        <div style={{display:"flex",gap:6,marginTop:12,marginBottom:2,flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{fontSize:11,color:"#aaa"}}>顯示：</span>
+          {["全部",...USERS].map(u=>(
+            <button key={u} onClick={()=>setViewU(u)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:viewU===u?600:400,border:`0.5px solid ${viewU===u?"#1D9E75":"#e0e0de"}`,background:viewU===u?"#eef8f4":"transparent",color:viewU===u?"#1D9E75":"#888"}}>
+              {u}
+            </button>
+          ))}
+          <button onClick={()=>exportXLSX(receipts,rate)} style={{marginLeft:"auto",padding:"4px 10px",borderRadius:20,fontSize:11,border:"0.5px solid #e0e0de",background:"transparent",color:"#888"}}>📊 匯出</button>
+        </div>
+
+        {/* ══ DASHBOARD ══ */}
+        {tab==="dash"&&<div className="fade">
+          {/* metrics */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:10}}>
+            {[["今日花費",todayTotal],["旅程累計",tripTotal]].map(([lbl,val])=>(
+              <div key={lbl} style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px"}}>
+                <div style={{fontSize:11,color:"#aaa",marginBottom:4}}>{lbl}</div>
+                <div style={{fontSize:22,fontWeight:700,letterSpacing:-0.5}}>{krwFmt(val)}</div>
+                {rate&&<div style={{fontSize:11,color:"#1D9E75",marginTop:2}}>{twdFmt(val,rate)}</div>}
+              </div>
+            ))}
+          </div>
+
+          {/* budget */}
+          <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <span style={{fontSize:13,fontWeight:600}}>預算進度</span>
+              {budEdit?(
+                <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                  <input value={budVal} onChange={e=>setBudVal(e.target.value)} placeholder="韓元" style={{padding:"6px 8px",borderRadius:7,border:"0.5px solid #d0d0ce",width:110,fontSize:12}}/>
+                  <button onClick={handleBudSave} style={{padding:"6px 12px",borderRadius:7,border:"none",background:"#1D9E75",color:"#fff",fontSize:12}}>存</button>
+                  <button onClick={()=>setBudEdit(false)} style={{padding:"6px 10px",borderRadius:7,border:"0.5px solid #d0d0ce",background:"transparent",color:"#888",fontSize:12}}>✕</button>
+                </div>
+              ):<button onClick={()=>{setBudVal(activeBud);setBudEdit(true)}} style={{padding:"5px 12px",borderRadius:7,border:"0.5px solid #d0d0ce",background:"transparent",color:"#888",fontSize:11}}>設定預算</button>}
+            </div>
+            <ProgressBar pct={budPct}/>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:5,fontSize:11}}>
+              <span style={{color:budPct>80?"#E24B4A":budPct>60?"#F9A825":"#1D9E75",fontWeight:600}}>已用 {budPct}%</span>
+              <span style={{color:"#aaa"}}>預算 {krwFmt(activeBud)}</span>
+            </div>
+          </div>
+
+          {/* per-user */}
+          <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>各人花費</div>
+            {USERS.map(u=>{
+              const k=UKEY[u];
+              const tot=(receipts[k]||[]).reduce((s,r)=>s+(Number(r.amount)||0),0);
+              const bud=budgets[k]||BUDGET_DEF;
+              const pct=clamp(bud>0?Math.round(tot/bud*100):0,0,100);
+              return(
+                <div key={u} style={{marginBottom:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}>
+                    <span style={{fontWeight:600}}>{u}</span>
+                    <span style={{color:"#aaa"}}>{krwFmt(tot)}{rate?` · ${twdFmt(tot,rate)}`:""}</span>
+                  </div>
+                  <ProgressBar pct={pct}/>
+                  <div style={{textAlign:"right",fontSize:10,color:"#ccc",marginTop:2}}>預算 {krwFmt(bud)} · 剩 {krwFmt(Math.max(0,bud-tot))}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* recent */}
+          <div style={{fontSize:13,fontWeight:600,margin:"14px 0 8px"}}>最近消費</div>
+          {sortedR.slice(0,5).map(r=><ReceiptCard key={r.id} r={r} rate={rate} onEdit={handleEdit} onDel={handleDel}/>)}
+          {sortedR.length===0&&<div style={{textAlign:"center",color:"#ccc",padding:"40px 0",fontSize:13}}>尚無紀錄，按右下角 + 開始記帳</div>}
+        </div>}
+
+        {/* ══ LIST ══ */}
+        {tab==="list"&&<div className="fade">
+          <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:10,marginBottom:10}}>
+            {["全部",...CATEGORIES].map(c=>(
+              <button key={c} onClick={()=>setCatF(c)} style={{padding:"4px 9px",borderRadius:20,fontSize:10,border:`0.5px solid ${catF===c?(CAT_CLR[c]||"#1D9E75"):"#e0e0de"}`,background:catF===c?((CAT_CLR[c]||"#1D9E75")+"18"):"transparent",color:catF===c?(CAT_CLR[c]||"#1D9E75"):"#888",fontWeight:catF===c?600:400}}>
+                {c}
+              </button>
+            ))}
+          </div>
+          <div style={{fontSize:11,color:"#aaa",marginBottom:8}}>{sortedR.length} 筆 · 合計 {krwFmt(filtR.reduce((s,r)=>s+(Number(r.amount)||0),0))}</div>
+          {sortedR.map(r=><ReceiptCard key={r.id} r={r} rate={rate} onEdit={handleEdit} onDel={handleDel} full/>)}
+          {sortedR.length===0&&<div style={{textAlign:"center",color:"#ccc",padding:"40px 0",fontSize:13}}>無紀錄</div>}
+        </div>}
+
+        {/* ══ CHARTS ══ */}
+        {tab==="chart"&&<div className="fade">
+          {/* pie - category */}
+          <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>消費類別</div>
+            {catData.length>0?(
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={catData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,percent})=>`${name} ${Math.round(percent*100)}%`} labelLine={false} fontSize={10}>
+                    {catData.map(e=><Cell key={e.name} fill={CAT_CLR[e.name]||"#888"}/>)}
+                  </Pie>
+                  <Tooltip formatter={v=>krwFmt(v)}/>
+                </PieChart>
+              </ResponsiveContainer>
+            ):<Empty/>}
+          </div>
+
+          {/* pie - payment */}
+          <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>付款方式</div>
+            {payData.length>0?(
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={payData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({name,percent})=>`${name} ${Math.round(percent*100)}%`} labelLine={false} fontSize={10}>
+                    {payData.map(e=><Cell key={e.name} fill={PAY_CLR[e.name]||"#888"}/>)}
+                  </Pie>
+                  <Tooltip formatter={v=>krwFmt(v)}/>
+                </PieChart>
+              </ResponsiveContainer>
+            ):<Empty/>}
+          </div>
+
+          {/* bar by date */}
+          {(()=>{
+            const dates=[...new Set(baseR.map(r=>r.date))].sort();
+            const barData=dates.map(d=>({date:d.slice(5),total:baseR.filter(r=>r.date===d).reduce((s,r)=>s+(Number(r.amount)||0),0)}));
+            return barData.length>0&&(
+              <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
+                <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>每日花費</div>
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart data={barData} barSize={28}>
+                    <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false}/>
+                    <YAxis hide/>
+                    <Tooltip formatter={v=>krwFmt(v)}/>
+                    <Bar dataKey="total" fill="#1D9E75" radius={[4,4,0,0]}/>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            );
+          })()}
+
+          {/* category breakdown */}
+          <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>類別明細</div>
+            {catData.length===0&&<Empty/>}
+            {CATEGORIES.map(c=>{
+              const val=baseR.filter(r=>r.category===c).reduce((s,r)=>s+(Number(r.amount)||0),0);
+              if(!val)return null;
+              const pct=tripTotal>0?Math.round(val/tripTotal*100):0;
+              return(
+                <div key={c} style={{marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}>
+                    <span style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{width:8,height:8,borderRadius:2,background:CAT_CLR[c],display:"inline-block"}}></span>{c}
+                    </span>
+                    <span style={{color:"#aaa"}}>{krwFmt(val)}{rate?` · ${twdFmt(val,rate)}`:""} ({pct}%)</span>
+                  </div>
+                  <div style={{height:5,borderRadius:3,background:CAT_CLR[c]+"25"}}>
+                    <div style={{width:`${pct}%`,height:"100%",background:CAT_CLR[c],borderRadius:3}}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>}
+      </div>
+
+      {/* ── FAB ── */}
+      <button onClick={handleNew} style={{position:"fixed",bottom:28,right:20,width:54,height:54,borderRadius:"50%",background:"#1D9E75",color:"#fff",border:"none",fontSize:26,display:"flex",alignItems:"center",justifyContent:"center",zIndex:150,boxShadow:"0 4px 20px rgba(29,158,117,0.4)",transition:"transform .1s"}}
+        onMouseDown={e=>e.currentTarget.style.transform="scale(0.93)"}
+        onMouseUp={e=>e.currentTarget.style.transform="scale(1)"}
+      >+</button>
+
+      {/* ══ FORM MODAL ══ */}
+      {showForm&&form&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={e=>{if(e.target===e.currentTarget)setShowForm(false)}}>
+          <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:680,maxHeight:"94vh",overflowY:"auto",padding:"20px 18px 60px"}} className="fade">
+
+            <div style={{width:36,height:4,borderRadius:2,background:"#e0e0de",margin:"0 auto 16px"}}></div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <span style={{fontSize:16,fontWeight:700}}>{editId?"編輯收據":"新增收據"}</span>
+              <button onClick={()=>setShowForm(false)} style={{width:28,height:28,borderRadius:"50%",border:"none",background:"#f0f0ee",color:"#888",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+            </div>
+
+            {/* image scan */}
+            <div onClick={()=>fileRef.current?.click()} style={{border:"1.5px dashed #d0d0ce",borderRadius:12,padding:"16px",textAlign:"center",marginBottom:14,cursor:"pointer",background:"#fafaf8",transition:"background .15s"}}
+              onMouseEnter={e=>e.currentTarget.style.background="#f0f8f5"}
+              onMouseLeave={e=>e.currentTarget.style.background="#fafaf8"}
+            >
+              <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={handleImg}/>
+              {scanLoad?(
+                <div style={{color:"#1D9E75",fontSize:13,fontWeight:500}}>🔍 AI 辨識中…</div>
+              ):form.img?(
+                <div>
+                  <img src={`data:image/jpeg;base64,${form.img}`} alt="" style={{maxHeight:100,borderRadius:8,marginBottom:6}}/>
+                  <div style={{fontSize:11,color:scanMsg.includes("✓")?"#1D9E75":"#E24B4A",fontWeight:500}}>{scanMsg||"點擊重新拍照"}</div>
+                </div>
+              ):(
+                <div>
+                  <div style={{fontSize:20,marginBottom:4}}>📷</div>
+                  <div style={{fontSize:12,color:"#888",fontWeight:500}}>拍收據照片</div>
+                  <div style={{fontSize:10,color:"#1D9E75",marginTop:3}}>Claude AI 自動辨識韓文 → 繁體中文</div>
+                </div>
+              )}
+            </div>
+
+            {/* fields */}
+            {[
+              ["使用者","select","user",USERS],
+              ["日期","date","date"],
+              ["店名","text","store","例：弘大 Olive Young"],
+              ["品項","text","items","例：精華液、面膜"],
+              ["金額（韓元 KRW）","number","amount","例：35000"],
+            ].map(([lbl,type,key,optOrPh])=>(
+              <div key={key}>
+                <label style={{fontSize:11,color:"#aaa",marginBottom:4,display:"block"}}>{lbl}</label>
+                {type==="select"?(
+                  <select value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))} style={{width:"100%",padding:"9px 10px",borderRadius:9,border:"0.5px solid #d0d0ce",background:"#fff",color:"#1a1a1a",fontSize:13,marginBottom:10}}>
+                    {optOrPh.map(o=><option key={o}>{o}</option>)}
+                  </select>
+                ):(
+                  <input type={type} value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))} placeholder={optOrPh} style={{width:"100%",padding:"9px 10px",borderRadius:9,border:"0.5px solid #d0d0ce",background:"#fff",color:"#1a1a1a",fontSize:13,marginBottom:10}}/>
+                )}
+                {key==="amount"&&rate&&form.amount&&<div style={{fontSize:11,color:"#1D9E75",marginTop:-8,marginBottom:10}}>≈ {twdFmt(form.amount,rate)}</div>}
+              </div>
+            ))}
+
+            <label style={{fontSize:11,color:"#aaa",marginBottom:4,display:"block"}}>類別</label>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+              {CATEGORIES.map(c=>(
+                <button key={c} onClick={()=>setForm(f=>({...f,category:c}))} style={{padding:"5px 10px",borderRadius:20,fontSize:11,border:`0.5px solid ${form.category===c?(CAT_CLR[c]||"#1D9E75"):"#e0e0de"}`,background:form.category===c?((CAT_CLR[c]||"#1D9E75")+"18"):"transparent",color:form.category===c?(CAT_CLR[c]||"#1D9E75"):"#888",fontWeight:form.category===c?600:400}}>
+                  {c}
+                </button>
+              ))}
+            </div>
+
+            <label style={{fontSize:11,color:"#aaa",marginBottom:4,display:"block"}}>付款方式</label>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+              {PAY.map(p=>(
+                <button key={p} onClick={()=>setForm(f=>({...f,payMethod:p}))} style={{padding:"5px 10px",borderRadius:20,fontSize:11,border:`0.5px solid ${form.payMethod===p?"#534AB7":"#e0e0de"}`,background:form.payMethod===p?"#534AB720":"transparent",color:form.payMethod===p?"#534AB7":"#888",fontWeight:form.payMethod===p?600:400}}>
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            <label style={{fontSize:11,color:"#aaa",marginBottom:4,display:"block"}}>備註（選填）</label>
+            <input value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} placeholder="例：和珞熙一起買" style={{width:"100%",padding:"9px 10px",borderRadius:9,border:"0.5px solid #d0d0ce",background:"#fff",color:"#1a1a1a",fontSize:13,marginBottom:16}}/>
+
+            <button onClick={handleSave} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"#1D9E75",color:"#fff",fontSize:15,fontWeight:700,letterSpacing:-0.2}}>
+              {editId?"儲存修改":"新增收據"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Empty(){return <div style={{textAlign:"center",color:"#ccc",padding:"28px 0",fontSize:13}}>尚無資料</div>;}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
