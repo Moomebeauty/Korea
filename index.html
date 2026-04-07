@@ -434,29 +434,124 @@ function renderSpots(){
 /* ═══════ RENDER INFO ═══════ */
 function renderInfo(){
   const ir=(l,v)=>`<div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start"><span style="font-size:11px;color:#aaa;min-width:32px;flex-shrink:0;padding-top:1px">${l}</span><span style="font-size:12px;color:#333;flex:1">${v}</span></div>`;
+  const ci=(text,clr)=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:0.5px solid #f5f5f3"><span style="font-size:14px;flex-shrink:0">${clr}</span><span style="font-size:12px;color:#333;flex:1">${text}</span></div>`;
+  const warn=(text)=>`<div style="background:#FFF3E0;border-left:3px solid #FFB74D;border-radius:0 6px 6px 0;padding:8px 10px;margin:6px 0;font-size:11px;color:#E65100;line-height:1.7">${text}</div>`;
+  const tip=(text)=>`<div style="background:#E8F5E9;border-left:3px solid #81C784;border-radius:0 6px 6px 0;padding:8px 10px;margin:6px 0;font-size:11px;color:#1B5E20;line-height:1.7">${text}</div>`;
+  const sec=(title)=>`<div style="font-size:13px;font-weight:700;color:#1a1a1a;margin:16px 0 8px;display:flex;align-items:center;gap:6px">${title}</div>`;
+  const item=(icon,text)=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:0.5px solid #f5f5f3"><span style="font-size:13px;flex-shrink:0;margin-top:1px">${icon}</span><span style="font-size:12px;color:#444;flex:1;line-height:1.6">${text}</span></div>`;
+
   $("info-content").innerHTML=`
+
+  <!-- 出國前準備 -->
+  <div class="card">
+    <div style="font-weight:700;margin-bottom:12px;font-size:14px">🧳 出國前準備清單</div>
+    ${warn("⚠️ 搭飛機行李箱舊的 barcode 標籤要全部撕掉！不然行李會跑去別的地方！")}
+
+    ${sec("📋 出發前必做")}
+    ${item("🛂","護照效期至少剩 <b>6 個月</b>以上，確認有 2 頁以上空白頁")}
+    ${item("✅","韓國台灣護照免簽，但要填寫<b>電子入境卡</b>")}
+    ${item("🎫","機票訂單、飯店訂單、旅遊保險證明（紙本＋手機備份）")}
+    ${item("💳","外幣現金＋信用卡（推高回饋卡），網卡/eSIM 要先買好")}
+    ${item("📱","下載 Naver Map、Kakao T、Papago，先存好離線地圖")}
+    ${item("🌡","查好首爾天氣，4月日夜溫差大，記得帶薄外套")}
+    ${item("🧴","旅遊保險一定要買！包含醫療險、行李損失、班機延誤")}
+    ${item("📦","行李箱預留至少 20% 空間，買太多才不會崩潰")}
+
+    ${sec("🎒 手提隨身行李（絕對不能放托運！）")}
+    ${item("🛂","護照＋身分證")}
+    ${item("🎫","機票/登機證 QR 碼（手機＋紙本雙備份）")}
+    ${item("💳","錢包（信用卡＋外幣現金）")}
+    ${item("📱","手機、充電線、行動電源（⚠️ 不能托運！100Wh以下）")}
+    ${item("🔌","國際插頭轉換器")}
+    ${item("💊","常用藥（暈車藥、過敏藥、消毒用品）、濕紙巾、乾洗手")}
+    ${item("👕","一套備用衣物（行李不見就靠它）")}
+    ${item("🃏","SIM卡收納盒＋卡針")}
+    ${item("🔑","家門鑰匙、筆")}
+    ${tip("💡 行動電源只能手提，不能托運！液體類要遵守 100ml 規定。")}
+
+    ${sec("🧳 托運行李建議打包")}
+    ${item("👔","衣服：上衣、褲子、外套、內衣褲（依天數準備）")}
+    ${item("👟","鞋子：穿1雙＋備用1雙")}
+    ${item("🧴","保養品＋化妝品（乳液、化妝水、粉底）")}
+    ${item("🪥","盥洗用品：牙刷牙膏、洗面乳、洗髮精、卸妝乳")}
+    ${item("💊","備用藥：腸胃藥、感冒藥、OK繃")}
+    ${item("☂️","折疊傘（首爾4月偶爾下雨）")}
+    ${item("👜","備用袋或折疊購物袋（買太多可當第二托運）")}
+    ${item("🌂","壓縮袋（節省行李空間神器）")}
+    ${tip("💡 液體記得用密封袋裝好！超過 100ml 的保養品放托運。")}
+
+    ${sec("🚫 搭飛機注意事項")}
+    ${item("⚠️","行動電源：只能手提，每顆不能超過 100Wh")}
+    ${item("⚠️","液體：手提每件需 100ml 以下，全部裝進透明夾鏈袋")}
+    ${item("⚠️","打火機：只能帶 1 個隨身，防風/藍焰打火機完全禁止")}
+    ${item("⚠️","剪刀/刀具：不能手提，可以托運")}
+    ${item("🚫","電子菸：禁止托運，韓國可帶入境（但台灣禁止出境，注意！）")}
+    ${item("🚫","易燃物、高壓噴霧：完全禁止")}
+  </div>
+
+  <!-- 韓國入境注意 -->
+  <div class="card">
+    <div style="font-weight:700;margin-bottom:10px;font-size:14px">🇰🇷 韓國入境注意</div>
+    ${item("🛂","護照效期至少剩 6 個月以上")}
+    ${item("✅","台灣護照免簽！但要填寫<b>電子入境卡</b>")}
+    ${item("🎫","可能要出示回程機票，記得截圖存手機")}
+    ${item("🏨","入境卡需填寫住宿地址：<br>永登浦路47街 8-1（서울 영등포구 영등포로 47길 8-1）")}
+  </div>
+
+  <!-- 飯店 -->
   <div class="card"><div style="font-weight:700;margin-bottom:10px">🏨 飯店</div>
     ${ir("名稱","首爾巴莫斯飯店")}${ir("地址","永登浦路47街 8-1（서울 영등포구 영등포로 47길 8-1）")}
     ${ir("入住","21:00 · 提前14:00加收₩20,000 · 可寄行李")}${ir("退房","平日13:00 · ⚠️週六日12:00")}${ir("訂單","1616328787173574")}
   </div>
+
+  <!-- 航班 -->
   <div class="card"><div style="font-weight:700;margin-bottom:10px">✈️ 航班</div>
     ${ir("去程","4/14 TW670 · 台中17:00→仁川20:45 · 兩人")}
     ${ir("霈潔","4/17 TW669 · 仁川13:55→台中16:00")}
     ${ir("珞熙","4/18 TW669 · 仁川13:55→台中16:00")}
   </div>
-  <div class="card"><div style="font-weight:700;margin-bottom:10px">🚇 交通</div>
-    <div class="info-box">💳 T-money：仁川機場T1 GS25/CU購買₩4,000，建議儲值₩30,000–50,000</div>
-    ${[["仁川→飯店","AREX→首爾站→1號線永登浦","60分","₩4,150"],
+
+  <!-- T-money 教學 -->
+  <div class="card"><div style="font-weight:700;margin-bottom:10px">💳 T-money 怎麼用</div>
+    ${tip("T-money 是首爾最方便的交通卡，搭地鐵、公車、計程車都能用，部分便利商店也能付款！")}
+    ${sec("📍 哪裡買？")}
+    ${item("🏪","仁川機場 T1 入境大廳 GS25 或 CU 便利商店")}
+    ${item("💰","買卡費用約 ₩4,000（卡本身費用）")}
+    ${item("💡","建議一次儲值 ₩30,000～₩50,000，搭車不用一直找錢")}
+    ${sec("🚇 怎麼儲值？")}
+    ${item("🏧","地鐵站的 T-money 加值機（有中文介面！）")}
+    ${item("🏪","GS25、CU、7-11 等便利商店櫃台直接說「T-money 充值」")}
+    ${item("💳","可用現金或部分機器支援信用卡")}
+    ${sec("🚌 怎麼搭車？")}
+    ${item("🚇","地鐵：過閘門時感應一下，下車再感應一次（要出站）")}
+    ${item("🚌","公車：上車感應一次，下車也要感應（不感應會扣多）")}
+    ${item("🚕","計程車：下車時把卡給司機感應")}
+    ${sec("💰 費用參考")}
+    ${item("🚇","地鐵單程約 ₩1,400～₩1,800")}
+    ${item("🚌","公車單程約 ₩1,200～₩1,500")}
+    ${item("💸","比單次購票便宜，還可以換乘折扣（30分鐘內轉車省錢）")}
+    ${sec("🔚 回台灣前")}
+    ${item("💰","在地鐵站服務台可以退餘額（退卡手續費 ₩500）")}
+    ${item("🎁","也可以留著下次來韓國繼續用！")}
+  </div>
+
+  <!-- 交通路線 -->
+  <div class="card"><div style="font-weight:700;margin-bottom:10px">🚇 交通路線</div>
+    ${[["仁川→飯店","AREX→首爾站→1號線永登浦站","60分","₩4,150"],
        ["永登浦→狎鷗亭","2號線(永登浦區廳)→盆唐線(狎鷗亭羅德奧)","45分","₩1,600"],
        ["永登浦→清潭洞","同上+步行5分","48分","₩1,600"],
        ["永登浦→弘大","2號線直達弘大入口站","20分","₩1,400"],
        ["飯店→仁川","永登浦→首爾站→AREX直達T1","60分","₩4,150"],
     ].map(([f,h,t,c])=>`<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid #f5f5f3"><div style="font-size:12px;font-weight:600;margin-bottom:2px">${f}</div><div style="font-size:11px;color:#666;margin-bottom:2px">${h}</div><div style="font-size:11px;color:#aaa">⏱${t} &nbsp;💰${c}</div></div>`).join("")}
   </div>
+
+  <!-- 韓元換算 -->
   <div class="card"><div style="font-weight:700;margin-bottom:10px">💰 韓元換算</div>
     ${["₩10,000≈NT$240","₩50,000≈NT$1,200","₩100,000≈NT$2,400","₩500,000≈NT$12,000"].map(v=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid #f5f5f3;font-size:13px"><span style="color:#888">${v.split("≈")[0]}</span><span style="font-weight:600;color:#1D9E75">≈${v.split("≈")[1]}</span></div>`).join("")}
     ${rate?`<div style="font-size:11px;color:#aaa;margin-top:8px">即時匯率：1 KRW = NT$${rate.toFixed(4)}</div>`:""}
   </div>
+
+  <!-- 緊急聯絡 -->
   <div class="card"><div style="font-weight:700;margin-bottom:10px">🆘 緊急聯絡</div>
     ${[["台灣駐韓代表處","+82-2-399-2767"],["救護車","119"],["警察","112"],["仁川機場遺失物","+82-32-741-2121"]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid #f5f5f3;font-size:13px"><span style="color:#888">${l}</span><span style="font-weight:600;color:#E24B4A">${v}</span></div>`).join("")}
   </div>`;
