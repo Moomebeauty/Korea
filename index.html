@@ -144,6 +144,7 @@ select option{background:#fff;color:#1a1a1a}
 
     <!-- 資訊 tab -->
     <div id="tab-info" class="hidden"><div id="info-content" style="margin-top:12px"></div></div>
+    <div id="tab-buy" class="hidden"><div id="buy-content" style="margin-top:12px"></div></div>
   </div>
 
   <button class="fab hidden" id="fab" onclick="openForm(null)">+</button>
@@ -152,6 +153,7 @@ select option{background:#fff;color:#1a1a1a}
     <button class="nav-btn active" id="nav-trip" onclick="switchMain('trip')"><span class="nav-icon">📅</span>行程</button>
     <button class="nav-btn" id="nav-expense" onclick="switchMain('expense')"><span class="nav-icon">💰</span>記帳</button>
     <button class="nav-btn" id="nav-spots" onclick="switchMain('spots')"><span class="nav-icon">🛍</span>景點</button>
+    <button class="nav-btn" id="nav-buy" onclick="switchMain('buy')"><span class="nav-icon">🛒</span>必買</button>
     <button class="nav-btn" id="nav-info" onclick="switchMain('info')"><span class="nav-icon">ℹ️</span>資訊</button>
   </div>
 </div>
@@ -215,17 +217,25 @@ const DAYS=[
      {t:"22:00",title:"入住 & 宵夜",sub:"永登浦巴莫斯飯店"},
    ],pj:[],lx:[],warn:"飯店入住 21:00，提早14:00加收₩20,000，可提前寄放行李"},
   {date:"4/15",day:"週三",emoji:"💉",label:"醫美日",
-   shared:[],
+   shared:[
+     {t:"11:00",title:"🏥 本思醫院 永登浦店 ⭐已預約",sub:"飯店步行1分鐘！永登浦站5號出口\n서울 영등포구 영중로 12 에쉐르빌딩 11층"},
+   ],
    pj:[
-     {t:"11:00",title:"本思醫院 永登浦店 ⭐已預約",sub:"永登浦站5號出口步行1分鐘\n서울 영등포구 영중로 12 에쉐르빌딩 11층"},
-     {t:"療程",title:"霈潔療程",sub:"ONDA電波 · 皮秒雷射 · 麗珠蘭 · 肉毒 · 除痣/斑 · 膠原蛋白針（法令紋）"},
-     {t:"晚上",title:"清潭洞逛街 & 晚餐",sub:""},
+     {t:"療程",title:"霈潔療程項目",sub:"ONDA電波 · 皮秒雷射 · 麗珠蘭 · 肉毒 · 除痣/斑 · 膠原蛋白針（法令紋）"},
    ],
    lx:[
-     {t:"11:00",title:"本思醫院 永登浦店 ⭐已預約",sub:"同上"},
-     {t:"療程",title:"珞熙療程",sub:"ONDA電波 · 皮秒雷射 · 麗珠蘭 · 肉毒 · 除痣/斑 · 膠原蛋白 · 除毛 · 嘴唇/下巴玻尿酸"},
-     {t:"晚上",title:"清潭洞逛街 & 晚餐",sub:""},
-   ],warn:"⚠️ 素顏到院！超過預約時間10分鐘自動取消\n施術後注意：linktr.ee/vandsplastictw"},
+     {t:"療程",title:"珞熙療程項目",sub:"ONDA電波 · 皮秒雷射 · 麗珠蘭 · 肉毒 · 除痣/斑 · 膠原蛋白 · 除毛 · 嘴唇/下巴玻尿酸"},
+   ],
+   warn:"⚠️ 素顏到院！超過預約時間10分鐘自動取消 · 施術後注意：linktr.ee/vandsplastictw\n💡 療程後皮膚可能稍紅，建議在飯店周邊逛逛就好，不用跑去江南"},
+  {date:"4/15b",day:"（療程後）",emoji:"🛍",label:"永登浦周邊逛街",
+   shared:[
+     {t:"療程後",title:"步行10分 → Times Square",sub:"首爾西區最大購物中心！\nUniqlo · E-Mart超市（買零食伴手禮）· 美食街\n與新世界百貨走廊直接相連，一次逛兩個"},
+     {t:"同場",title:"新世界百貨 永登浦店",sub:"Times Square直接相連\nGucci · LV · 各國際品牌 · 美妝"},
+     {t:"同場",title:"樂天百貨 永登浦店",sub:"步行12分 · 永登浦站正上方\n美妝 · 服飾 · 地下美食街"},
+     {t:"想挖寶",title:"永登浦地下購物商場",sub:"步行8分 · 平價服飾配件\n在地人愛逛，可挖到便宜好物"},
+     {t:"晚餐",title:"永登浦傳統市場",sub:"步行5分 · 比光藏市場更在地！\n新鮮食材 · 道地小吃 · 平民美食"},
+     {t:"晚上",title:"步行1分回飯店休息 💤",sub:"好好保養臉部，療程後多補水！"},
+   ],pj:[],lx:[],warn:""},
   {date:"4/16",day:"週四",emoji:"🛍",label:"彩妝課+逛街日",
    shared:[],
    pj:[
@@ -275,7 +285,12 @@ const DAYS=[
 ];
 
 const SPOTS=[
-  {emoji:"🏥",name:"本思醫院 永登浦店",cat:"醫美",tags:["已預約","4/15 11:00"],desc:"永登浦站5號出口步行1分鐘\n서울 영등포구 영중로 12 에쉐르빌딩 11층\nTEL: +82 2-6956-5113"},
+  {emoji:"🏥",name:"本思醫院 永登浦店",cat:"醫美",tags:["已預約","4/15 11:00"],desc:"飯店步行1分鐘！\n서울 영등포구 영중로 12 에쉐르빌딩 11층\nTEL: +82 2-6956-5113"},
+  {emoji:"🏬",name:"Times Square 購物中心",cat:"購物",tags:["永登浦","飯店步行10分"],desc:"首爾西區最大購物中心\nUniqlo · E-Mart超市 · 美食街 · 電影院\n與新世界百貨相連，一次逛兩個！\n營業 10:30–22:00"},
+  {emoji:"🏬",name:"新世界百貨 永登浦",cat:"百貨",tags:["永登浦","Times Square相連"],desc:"與Times Square走廊直接相連\nGucci · LV · 各國際精品品牌\n營業 10:30–20:00"},
+  {emoji:"🏬",name:"樂天百貨 永登浦",cat:"百貨",tags:["永登浦","地鐵站上方"],desc:"永登浦地鐵站正上方\n美妝 · 服飾 · 地下美食街\n營業 10:30–20:00"},
+  {emoji:"🛒",name:"永登浦地下購物商場",cat:"平價購物",tags:["永登浦","在地人愛逛"],desc:"平價服飾、配件，挖寶好去處\n步行8分，在地人愛去\n營業 10:00–21:00"},
+  {emoji:"🥘",name:"永登浦傳統市場",cat:"市場美食",tags:["永登浦","在地小吃"],desc:"比光藏市場更少觀光客、更有生活感！\n新鮮食材 · 道地小吃 · 平民美食\n步行5分，適合晚餐"},
   {emoji:"🎨",name:"彩妝課地點",cat:"彩妝",tags:["珞熙","4/16-17 11:00"],desc:"清潭洞 70-18 2樓\n청담동 70-18 2층\n清潭站12號出口步行3分鐘"},
   {emoji:"🌳",name:"延南洞",cat:"文青街區",tags:["4/16早上","弘大旁"],desc:"경의선숲길公園沿線\n韓系文青咖啡廳、選物店、小吃\n🚇 2號線弘大入口站步行10分"},
   {emoji:"🛒",name:"明洞",cat:"購物",tags:["4/16上午","必掃貨"],desc:"Olive Young旗艦店（必逛！）\n明洞小吃街、保養品大牌集中\n🚇 4號線明洞站1號出口"},
@@ -506,8 +521,111 @@ function renderPie(id,data,total){
 }
 
 /* ═══════ NAV ═══════ */
+
+/* ═══════ BUY LIST ═══════ */
+const BUY_ITEMS=[
+  {id:'pyderin',cat:'pharmacy',store:'藥局',name:'PYDERIN 派得林',sub:'PDRN純度99%・含量10,000ppm',price:'',tag:'超強修護',tagBg:'#FBEAF0',tagClr:'#993556',isNew:true,
+   detail:'成分：低分子量PDRN（97kDa）、純度99%、含量10,000ppm。強效修護、醫美後恢復，目前最紅推薦商品！'},
+  {id:'rejuvuster',cat:'pharmacy',store:'藥局',name:'Rejuvyoung 10000 + PYDERIN Rejuvuster',sub:'目前最紅兩支！綠管+白管',price:'',tag:'目前最紅',tagBg:'#FFE0E0',tagClr:'#CC0000',isNew:true,
+   detail:'🟢 Rejuvyoung 10000（綠色）— PDRN 10,000ppm。⚪ PYDERIN Rejuvuster（白色）— PDRN修護面霜。適合醫美後修護或日常高濃度保養。'},
+  {id:'juvekle',cat:'pharmacy',store:'藥局',name:'Juvekle 童顏霜',sub:'30ml・PDLLA 10,625ppm・塗抹式膠原蛋白針',price:'',tag:'面霜',tagBg:'#FBEAF0',tagClr:'#993556',isNew:false,
+   detail:'保養最後一步當面霜，容易顯疲憊位置可稍微厚塗。含醫美童顏針喬雅露同成分，刺激膠原蛋白生成、改善細紋、填補法令紋蘋果肌。'},
+  {id:'rejuyoung',cat:'pharmacy',store:'藥局',name:'Rejuyoung 麗珠洋',sub:'偏面霜質地・吸收快不黏不悶',price:'',tag:'修護',tagBg:'#E1F5EE',tagClr:'#0F6E56',isNew:false,
+   detail:'肌膚乾燥、狀態不穩定時使用。連續使用後底妝更服貼，整體有光澤感。'},
+  {id:'rejuveon',cat:'pharmacy',store:'藥局',name:'Rejuveon 麗珠蘭（綠）',sub:'PDRN 1000ppm・乳霜・約₩30,000',price:'₩30,000',tag:'鎮定',tagBg:'#E1F5EE',tagClr:'#0F6E56',isNew:false,
+   detail:'PDRN 1000ppm + 積雪草、神經醯胺。皮膚容易泛紅、屏障脆弱的朋友，代替乳液擦就可以了。'},
+  {id:'rejuvenex',cat:'pharmacy',store:'藥局',name:'Rejuvenex 麗珠蘭（金）',sub:'PDRN 800ppm・軟膏・約₩45,000',price:'₩45,000',tag:'醫美後',tagBg:'#FAEEDA',tagClr:'#854F0B',isNew:false,
+   detail:'PDRN 800ppm，軟膏質地。局部點在有傷口的地方，修復超快！常做醫美的朋友必備。'},
+  {id:'rejuall',cat:'pharmacy',store:'藥局',name:'Rejuall 麗珠蘭（藍）',sub:'PDRN 1200ppm・凝膠・約₩45,000',price:'₩45,000',tag:'保濕',tagBg:'#E6F1FB',tagClr:'#185FA5',isNew:false,
+   detail:'PDRN 1200ppm + 玻尿酸、烟酸胺。凝膠輕薄不油膩，很適合台灣潮濕天氣，早晚都適用。'},
+  {id:'rejuran-s',cat:'pharmacy',store:'藥局',name:'REJURAN 銀管 回春霜',sub:'白天用・痘痘肌・毛孔不出油',price:'',tag:'日用',tagBg:'#E1F5EE',tagClr:'#0F6E56',isNew:false,
+   detail:'白天用。痘痘肌適用，毛孔比較不會出油。薄薄一層，延展性和吸收度很好，清爽不黏膩。'},
+  {id:'rejuran-g',cat:'pharmacy',store:'藥局',name:'REJURAN 金管 緊緻霜',sub:'晚上用・敏感肌可用・彈性提亮',price:'',tag:'晚用',tagBg:'#FAEEDA',tagClr:'#854F0B',isNew:false,
+   detail:'晚上用。敏感肌可用，隔天覺得彈性提亮，清爽不黏膩。'},
+  {id:'rejuran-w',cat:'pharmacy',store:'藥局',name:'REJURAN 白管 保濕霜',sub:'冬天/妝前用・比較滋潤',price:'',tag:'保濕',tagBg:'#E6F1FB',tagClr:'#185FA5',isNew:false,
+   detail:'冬天或妝前用，比較滋潤保濕，適合乾燥肌。'},
+  {id:'vt',cat:'oliveyoung',store:'Olive Young',name:'VT 微針精華',sub:'Olive Young 火爆人氣No.1',price:'',tag:'精華',tagBg:'#FBEAF0',tagClr:'#993556',isNew:false,
+   detail:'Olive Young 最火爆精華！微針導入技術，讓保養成分更好吸收。'},
+  {id:'greentomato',cat:'oliveyoung',store:'Olive Young',name:'綠蕃茄精華 & 棉片',sub:'兩款都要買！',price:'',tag:'精華',tagBg:'#EAF3DE',tagClr:'#27500A',isNew:false,
+   detail:'綠蕃茄精華 + 綠蕃茄棉片，兩款都要帶！長銷人氣商品。'},
+  {id:'drg',cat:'oliveyoung',store:'Olive Young',name:'Dr.G 舒緩保濕霜',sub:'敏感肌必備',price:'',tag:'面霜',tagBg:'#E6F1FB',tagClr:'#185FA5',isNew:false,
+   detail:'敏感肌必備！舒緩鎮定效果好，韓國人氣長銷款。'},
+  {id:'dokdo',cat:'oliveyoung',store:'Olive Young',name:'獨島保濕霜 & 精華',sub:'面霜+精華一起買',price:'',tag:'保濕',tagBg:'#E1F5EE',tagClr:'#0F6E56',isNew:false,
+   detail:'獨島保濕面霜 + 獨島保濕精華，兩款一起用效果更好，深層保濕。'},
+  {id:'ilso',cat:'oliveyoung',store:'Olive Young',name:'ilso 粉刺清潔組',sub:'毛孔清潔必備',price:'',tag:'清潔',tagBg:'#EEEDFE',tagClr:'#3C3489',isNew:false,
+   detail:'ilso 粉刺清潔組，毛孔清潔效果好，Olive Young 長期熱銷商品。'},
+  {id:'fixx',cat:'oliveyoung',store:'Olive Young',name:'FIXX 定妝噴霧',sub:'妝容持久必備',price:'',tag:'彩妝',tagBg:'#FBEAF0',tagClr:'#993556',isNew:false,
+   detail:'妝容持久固定，最多人推薦的定妝噴霧，上妝後噴一下整天不脫落。'},
+  {id:'medicube',cat:'oliveyoung',store:'Olive Young',name:'medicube PDRN 精華',sub:'含PDRN修護成分',price:'',tag:'精華',tagBg:'#E1F5EE',tagClr:'#0F6E56',isNew:false,
+   detail:'含PDRN修護成分，保養品版本的修護精華，日常使用方便。'},
+  {id:'ricecake',cat:'oliveyoung',store:'Olive Young',name:'年糕洗面乳',sub:'Olive Young 銷售冠軍',price:'',tag:'清潔',tagBg:'#FAEEDA',tagClr:'#854F0B',isNew:false,
+   detail:'Olive Young 年度銷售冠軍！年糕般滑嫩質地，清潔後不緊繃，超多人回購。'},
+];
+
+let buyChecked=JSON.parse(localStorage.getItem('kr_buy')||'[]');
+let buyOpenId=null;
+let buyFilter='all';
+
+function renderBuy(){
+  const filtered=buyFilter==='all'?BUY_ITEMS:BUY_ITEMS.filter(i=>i.cat===buyFilter);
+  const pharmacy=filtered.filter(i=>i.cat==='pharmacy');
+  const oy=filtered.filter(i=>i.cat==='oliveyoung');
+  const done=buyChecked.length;
+  let html=`<div style="display:flex;gap:8px;margin-bottom:12px;padding:10px 12px;background:#f7f7f5;border-radius:10px">
+    <div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:700">${BUY_ITEMS.length}</div><div style="font-size:10px;color:#aaa">總品項</div></div>
+    <div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:#1D9E75">${done}</div><div style="font-size:10px;color:#aaa">已買</div></div>
+    <div style="flex:1;text-align:center"><div style="font-size:18px;font-weight:700;color:#D4537E">${BUY_ITEMS.length-done}</div><div style="font-size:10px;color:#aaa">待買</div></div>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+    <button onclick="setBuyF('all',this)" style="padding:4px 10px;border-radius:20px;font-size:11px;border:0.5px solid ${buyFilter==='all'?'#1D9E75':'#e0e0de'};background:${buyFilter==='all'?'#eef8f4':'transparent'};color:${buyFilter==='all'?'#1D9E75':'#888'};cursor:pointer">全部</button>
+    <button onclick="setBuyF('pharmacy',this)" style="padding:4px 10px;border-radius:20px;font-size:11px;border:0.5px solid ${buyFilter==='pharmacy'?'#1D9E75':'#e0e0de'};background:${buyFilter==='pharmacy'?'#eef8f4':'transparent'};color:${buyFilter==='pharmacy'?'#1D9E75':'#888'};cursor:pointer">💊 藥局</button>
+    <button onclick="setBuyF('oliveyoung',this)" style="padding:4px 10px;border-radius:20px;font-size:11px;border:0.5px solid ${buyFilter==='oliveyoung'?'#1D9E75':'#e0e0de'};background:${buyFilter==='oliveyoung'?'#eef8f4':'transparent'};color:${buyFilter==='oliveyoung'?'#1D9E75':'#888'};cursor:pointer">🛒 Olive Young</button>
+  </div>`;
+
+  [[pharmacy,'💊 藥局'],[oy,'🛒 Olive Young']].forEach(([items,label])=>{
+    if(!items.length)return;
+    html+=`<div style="display:flex;align-items:center;gap:8px;margin:16px 0 8px;padding-bottom:6px;border-bottom:0.5px solid #e8e8e6">
+      <span style="font-size:13px;font-weight:600">${label}</span>
+      <span style="font-size:10px;color:#aaa;background:#f5f5f5;padding:2px 7px;border-radius:20px">${items.length} 項</span>
+    </div>`;
+    items.forEach(item=>{
+      const isDone=buyChecked.includes(item.id);
+      const isOpen=buyOpenId===item.id;
+      html+=`<div style="background:#fff;border:0.5px solid ${isDone?'#d0d0ce':'#e8e8e6'};border-radius:12px;padding:12px 14px;margin-bottom:8px;opacity:${isDone?'0.55':'1'}" onclick="toggleBuyDetail('${item.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:#1a1a1a;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+              ${item.name}
+              ${item.isNew?'<span style="background:#FF6B6B;color:#fff;font-size:9px;padding:1px 5px;border-radius:6px;font-weight:500">NEW</span>':''}
+            </div>
+            <div style="font-size:11px;color:#999;margin-top:3px">${item.sub}</div>
+            ${item.price?`<div style="font-size:11px;color:#1D9E75;font-weight:500;margin-top:3px">${item.price}</div>`:''}
+            <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+              <span style="font-size:10px;padding:2px 7px;border-radius:8px;background:${item.tagBg};color:${item.tagClr};font-weight:500">${item.tag}</span>
+              <span style="font-size:10px;color:#aaa">${item.store}</span>
+            </div>
+          </div>
+          <button onclick="toggleBuyCheck('${item.id}',event)" style="width:26px;height:26px;border-radius:50%;border:1.5px solid ${isDone?'#1D9E75':'#d0d0ce'};background:${isDone?'#1D9E75':'transparent'};color:${isDone?'#fff':'#888'};font-size:13px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center">${isDone?'✓':''}</button>
+        </div>
+        ${isOpen?`<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid #f0f0ee;font-size:11px;color:#888;line-height:1.7">${item.detail}</div>`:''}
+      </div>`;
+    });
+  });
+
+  document.getElementById('buy-content').innerHTML=html;
+}
+
+function setBuyF(f){buyFilter=f;renderBuy();}
+function toggleBuyCheck(id,e){
+  e.stopPropagation();
+  buyChecked=buyChecked.includes(id)?buyChecked.filter(x=>x!==id):[...buyChecked,id];
+  localStorage.setItem('kr_buy',JSON.stringify(buyChecked));
+  renderBuy();
+}
+function toggleBuyDetail(id){buyOpenId=buyOpenId===id?null:id;renderBuy();}
+
 function switchMain(name){
-  ["trip","expense","spots","info"].forEach(t=>{
+  ["trip","expense","spots","buy","info"].forEach(t=>{
     $("tab-"+t).classList.toggle("hidden",t!==name);
     $("nav-"+t).classList.toggle("active",t===name);
   });
@@ -516,6 +634,7 @@ function switchMain(name){
   else if(name==="spots")renderSpots();
   else if(name==="info")renderInfo();
   else if(name==="expense")renderExpense();
+  else if(name==="buy")renderBuy();
 }
 function switchSub(name){
   ["dash","list","chart"].forEach(t=>{
