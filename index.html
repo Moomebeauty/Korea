@@ -2,691 +2,589 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>🇰🇷 首爾記帳 · 霈潔&珞熙</title>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>🇰🇷 首爾旅遊 · 霈潔&珞熙</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body,#root{height:100%}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;-webkit-tap-highlight-color:transparent}
-  input,select,textarea,button{font-family:inherit}
-  input,select{outline:none}
-  select option{background:#fff;color:#1a1a1a}
-  button{cursor:pointer}
-  ::-webkit-scrollbar{width:3px}
-  ::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px}
-  .fade{animation:fadeIn .2s ease}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;font-size:14px}
+button,input,select{font-family:inherit;font-size:14px;outline:none}
+button{cursor:pointer}
+select option{background:#fff;color:#1a1a1a}
+.hidden{display:none!important}
+.card{background:#fff;border:0.5px solid #e8e8e6;border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.btn{padding:8px 14px;border-radius:9px;border:0.5px solid #d0d0ce;background:transparent;color:#1a1a1a;font-weight:500}
+.btn-green{padding:8px 14px;border-radius:9px;border:none;background:#1D9E75;color:#fff;font-weight:600}
+.inp{width:100%;padding:10px 12px;border-radius:9px;border:0.5px solid #d0d0ce;background:#fff;color:#1a1a1a;margin-bottom:10px}
+.sel{width:100%;padding:10px 12px;border-radius:9px;border:0.5px solid #d0d0ce;background:#fff;color:#1a1a1a;margin-bottom:10px}
+.lbl{font-size:11px;color:#aaa;margin-bottom:4px;display:block;font-weight:500}
+.badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500;white-space:nowrap;display:inline-block}
+.fab{position:fixed;bottom:76px;right:20px;width:54px;height:54px;border-radius:50%;background:#1D9E75;color:#fff;border:none;font-size:26px;display:flex;align-items:center;justify-content:center;z-index:150;box-shadow:0 4px 20px rgba(29,158,117,0.4)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-box{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:680px;max-height:92vh;overflow-y:auto;padding:20px 18px 70px}
+.prog-wrap{height:7px;border-radius:4px;background:#ededeb;overflow:hidden;margin:6px 0}
+.prog-bar{height:100%;border-radius:4px;transition:width .4s ease}
+.rcard{background:#fff;border:0.5px solid #e8e8e6;border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.metric{background:#f7f7f5;border-radius:12px;padding:14px}
+.pill{padding:4px 10px;border-radius:20px;font-size:11px;border:0.5px solid #e0e0de;background:transparent;color:#888;cursor:pointer}
+.pill.active{border-color:#1D9E75;background:#eef8f4;color:#1D9E75;font-weight:600}
+.tag{padding:5px 10px;border-radius:20px;font-size:11px;border:0.5px solid #e0e0de;background:transparent;color:#888;cursor:pointer}
+.tag.active{font-weight:600}
+.section-title{font-size:13px;font-weight:600;margin:14px 0 8px}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:100px;padding:0 4px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar-fill{width:100%;border-radius:4px 4px 0 0;background:#1D9E75;min-height:2px}
+.bar-label{font-size:9px;color:#aaa}
+.pie-wrap{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.pie{width:110px;height:110px;border-radius:50%;flex-shrink:0}
+.legend{display:flex;flex-direction:column;gap:5px;font-size:11px}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:0.5px solid #e8e8e6;display:flex;z-index:120;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-btn{flex:1;padding:10px 4px 8px;border:none;background:transparent;color:#aaa;font-size:10px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.nav-btn.active{color:#1D9E75}
+.nav-icon{font-size:18px;line-height:1}
+.day-header{background:#F48FB1;border-radius:12px;padding:12px 16px;margin-bottom:10px;color:#fff}
+.day-title{font-size:15px;font-weight:700;margin-bottom:2px}
+.time-row{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start}
+.time-badge{background:#f0f0ee;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:600;color:#534AB7;min-width:52px;text-align:center;flex-shrink:0;margin-top:1px}
+.time-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.time-sub{font-size:11px;color:#888;line-height:1.5}
+.warn-box{background:#FFF3E0;border-left:3px solid #FFB74D;border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#E65100;line-height:1.7}
+.info-box{background:#E8F5E9;border-left:3px solid #81C784;border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#1B5E20;line-height:1.7}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.user-col{border-radius:10px;padding:10px}
+.user-col-pj{background:#FFF0F6;border:0.5px solid #F48FB1}
+.user-col-lx{background:#E8F4FD;border:0.5px solid #90CAF9}
+.ucol-title{font-weight:700;font-size:12px;margin-bottom:8px}
+.ucol-item{font-size:11px;color:#555;margin-bottom:6px;line-height:1.5}
+.day-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
+.day-tabs::-webkit-scrollbar{display:none}
+.day-tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:0.5px solid #e0e0de;background:transparent;color:#888;white-space:nowrap;flex-shrink:0;cursor:pointer}
+.day-tab.active{background:#F48FB1;color:#fff;border-color:#F48FB1}
+.spot-card{background:#fff;border:0.5px solid #e8e8e6;border-radius:12px;padding:12px;margin-bottom:8px}
+.spot-name{font-size:13px;font-weight:600;margin-bottom:4px}
+.spot-desc{font-size:11px;color:#777;line-height:1.6}
+.spot-tags{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.spot-tag{font-size:10px;padding:2px 7px;border-radius:8px;background:#f0f0ee;color:#888}
+.sub-tabs{display:flex;background:#fff;border:0.5px solid #e8e8e6;border-radius:12px;overflow:hidden;margin-top:12px}
+.sub-tab{flex:1;padding:9px 4px;font-size:12px;text-align:center;background:transparent;color:#888;border:none;cursor:pointer;font-weight:400}
+.sub-tab.active{background:#eef8f4;color:#1D9E75;font-weight:600}
+.sync-banner{background:#eef8f4;border-bottom:0.5px solid #b2dfdb;padding:5px 16px;font-size:11px;color:#1D9E75;text-align:center}
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const {useState,useEffect,useRef,useCallback,useMemo}=React;
-const {PieChart,Pie,Cell,Tooltip,ResponsiveContainer,BarChart,Bar,XAxis,YAxis}=Recharts;
+<div id="app">
+  <!-- Header -->
+  <div style="background:#fff;border-bottom:0.5px solid #e8e8e6;padding:11px 16px;position:sticky;top:0;z-index:100">
+    <div style="max-width:680px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:15px;font-weight:700">🇰🇷 首爾旅遊 · 霈潔&amp;珞熙</div>
+        <div style="font-size:10px;color:#aaa;margin-top:2px">
+          <span class="dot" id="sync-dot" style="background:#F9A825"></span>
+          <span id="sync-label">同步中…</span>
+          <span id="rate-label" style="margin-left:8px"></span>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+        <button class="btn" style="font-size:10px;padding:4px 8px" onclick="syncNow()">↻ 同步</button>
+        <div id="user-chips" style="display:flex;gap:4px"></div>
+      </div>
+    </div>
+  </div>
+  <div id="sync-banner" class="sync-banner hidden">資料已同步 · 兩人共用同一份資料</div>
 
-/* ════════════════════════════════════════
-   CONFIG — GitHub repo 同步
-   ════════════════════════════════════════ */
-const GH_REPO   = "Moomebeauty/Roxi";
-const GH_FILE   = "data/tracker.json";
-const GH_BRANCH = "main";
-const GH_API    = "https://api.github.com";
-const LS_TOKEN  = "seoul_gh_token";
-const getToken  = ()=>localStorage.getItem(LS_TOKEN)||"";
+  <div style="max-width:680px;margin:0 auto;padding:0 14px;padding-bottom:80px">
+    <!-- 行程 tab -->
+    <div id="tab-trip"><div style="margin-top:12px"><div class="day-tabs" id="day-tabs"></div><div id="day-content"></div></div></div>
 
-/* ════════════════════════════════════════
-   CONSTANTS
-   ════════════════════════════════════════ */
-const USERS      = ["霈潔","珞熙","共同"];
-const UKEY       = {"霈潔":"pj","珞熙":"lx","共同":"co"};
-const CATEGORIES = ["交通","餐飲","購物","住宿","門票","醫美","彩妝保養品","服飾"];
-const PAY        = ["現金","信用卡","PayPay","T-money"];
-const CAT_CLR    = {交通:"#378ADD",餐飲:"#1D9E75",購物:"#D4537E",住宿:"#7F77DD",門票:"#F9A825",醫美:"#D85A30",彩妝保養品:"#639922",服飾:"#E24B4A"};
-const PAY_CLR    = {現金:"#7F77DD",信用卡:"#1D9E75",PayPay:"#D4537E","T-money":"#378ADD"};
-const BUDGET_DEF = 3000000;
-const TRIP_START = "2026-04-14";
-const TRIP_END   = "2026-04-18";
+    <!-- 記帳 tab -->
+    <div id="tab-expense" class="hidden">
+      <div class="sub-tabs">
+        <button class="sub-tab active" id="sub-dash-btn" onclick="switchSub('dash')">總覽</button>
+        <button class="sub-tab" id="sub-list-btn" onclick="switchSub('list')">收據列表</button>
+        <button class="sub-tab" id="sub-chart-btn" onclick="switchSub('chart')">統計</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;margin-bottom:4px">
+        <span style="font-size:11px;color:#aaa">顯示：</span>
+        <div id="view-pills" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+        <button class="btn" style="margin-left:auto;font-size:11px;padding:4px 10px" onclick="exportXLSX()">📊 匯出</button>
+      </div>
+      <div id="sub-dash">
+        <div class="grid2" style="margin-top:6px">
+          <div class="metric"><div style="font-size:11px;color:#aaa;margin-bottom:4px">今日花費</div><div id="today-total" style="font-size:20px;font-weight:700;letter-spacing:-.5px">₩0</div><div id="today-twd" style="font-size:11px;color:#1D9E75;margin-top:2px"></div></div>
+          <div class="metric"><div style="font-size:11px;color:#aaa;margin-bottom:4px">旅程累計</div><div id="trip-total" style="font-size:20px;font-weight:700;letter-spacing:-.5px">₩0</div><div id="trip-twd" style="font-size:11px;color:#1D9E75;margin-top:2px"></div></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-weight:600">預算進度</span><button class="btn" style="font-size:11px;padding:4px 10px" onclick="openBudgetEdit()">設定預算</button></div>
+          <div class="prog-wrap"><div id="bud-bar" class="prog-bar" style="width:0%;background:#1D9E75"></div></div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px"><span id="bud-pct" style="font-weight:600;color:#1D9E75">已用 0%</span><span id="bud-total" style="color:#aaa">預算 ₩0</span></div>
+        </div>
+        <div class="card"><div style="font-weight:600;margin-bottom:12px">各人花費</div><div id="user-budgets"></div></div>
+        <div class="section-title">最近消費</div>
+        <div id="recent-list"></div>
+      </div>
+      <div id="sub-list" class="hidden">
+        <div id="cat-filters" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;margin-bottom:8px"></div>
+        <div id="list-meta" style="font-size:11px;color:#aaa;margin-bottom:8px"></div>
+        <div id="full-list"></div>
+      </div>
+      <div id="sub-chart" class="hidden">
+        <div class="card" style="margin-top:8px"><div style="font-weight:600;margin-bottom:12px">消費類別</div><div id="cat-pie" class="pie-wrap"></div></div>
+        <div class="card"><div style="font-weight:600;margin-bottom:12px">付款方式</div><div id="pay-pie" class="pie-wrap"></div></div>
+        <div class="card"><div style="font-weight:600;margin-bottom:10px">每日花費</div><div id="day-bar" class="bar-chart"></div></div>
+        <div class="card"><div style="font-weight:600;margin-bottom:12px">類別明細</div><div id="cat-detail"></div></div>
+      </div>
+    </div>
 
-/* ════════════════════════════════════════
-   UTILS
-   ════════════════════════════════════════ */
-const today  = ()=>new Date().toISOString().slice(0,10);
-const uid    = ()=>Date.now()+"_"+Math.random().toString(36).slice(2,6);
-const krwFmt = v=>`₩${Math.round(Number(v)||0).toLocaleString()}`;
-const twdFmt = (v,r)=>r?`NT$${Math.round((Number(v)||0)*r).toLocaleString()}`:"";
-const clamp  = (v,min,max)=>Math.min(max,Math.max(min,v));
-const sum    = (arr,key)=>arr.reduce((s,r)=>s+(Number(r[key])||0),0);
+    <!-- 景點 tab -->
+    <div id="tab-spots" class="hidden"><div id="spots-content" style="margin-top:12px"></div></div>
 
-function newReceipt(user){
-  return{id:uid(),user,date:today(),store:"",items:"",amount:"",category:"購物",payMethod:"現金",note:"",img:""};
-}
+    <!-- 資訊 tab -->
+    <div id="tab-info" class="hidden"><div id="info-content" style="margin-top:12px"></div></div>
+  </div>
 
-/* ════════════════════════════════════════
-   EMPTY STATE
-   ════════════════════════════════════════ */
-const EMPTY_DATA = {
-  receipts:{pj:[],lx:[],co:[]},
-  budgets:{pj:BUDGET_DEF,lx:BUDGET_DEF,co:1000000},
-  updatedAt:""
-};
+  <button class="fab hidden" id="fab" onclick="openForm(null)">+</button>
 
-/* ════════════════════════════════════════
-   GITHUB API
-   ════════════════════════════════════════ */
-const ghHeaders = ()=>({
-  "Authorization":`token ${getToken()}`,
-  "Content-Type":"application/json",
-  "Accept":"application/vnd.github+json"
-});
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nav-trip" onclick="switchMain('trip')"><span class="nav-icon">📅</span>行程</button>
+    <button class="nav-btn" id="nav-expense" onclick="switchMain('expense')"><span class="nav-icon">💰</span>記帳</button>
+    <button class="nav-btn" id="nav-spots" onclick="switchMain('spots')"><span class="nav-icon">🛍</span>景點</button>
+    <button class="nav-btn" id="nav-info" onclick="switchMain('info')"><span class="nav-icon">ℹ️</span>資訊</button>
+  </div>
+</div>
 
-async function ghGet(){
-  const res = await fetch(`${GH_API}/repos/${GH_REPO}/contents/${GH_FILE}?ref=${GH_BRANCH}&t=${Date.now()}`,{headers:ghHeaders()});
-  if(res.status===404) return {data:EMPTY_DATA, sha:null};
-  if(!res.ok) throw new Error(`讀取失敗 ${res.status}`);
-  const json = await res.json();
-  const raw  = atob(json.content.replace(/\n/g,""));
-  return {data:JSON.parse(raw), sha:json.sha};
-}
+<!-- FORM MODAL -->
+<div id="form-modal" class="modal-bg hidden">
+  <div class="modal-box">
+    <div style="width:36px;height:4px;border-radius:2px;background:#e0e0de;margin:0 auto 16px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <span id="form-title" style="font-size:16px;font-weight:700">新增收據</span>
+      <button style="width:28px;height:28px;border-radius:50%;border:none;background:#f0f0ee;color:#888;font-size:18px;display:flex;align-items:center;justify-content:center" onclick="closeForm()">×</button>
+    </div>
+    <div id="img-area" style="border:1.5px dashed #d0d0ce;border-radius:12px;padding:16px;text-align:center;margin-bottom:14px;cursor:pointer;background:#fafaf8" onclick="document.getElementById('file-inp').click()">
+      <input id="file-inp" type="file" accept="image/*" capture="environment" style="display:none" onchange="handleImg(this)">
+      <div id="img-content"><div style="font-size:24px;margin-bottom:4px">📷</div><div style="font-size:12px;color:#888;font-weight:500">拍收據照片</div><div style="font-size:10px;color:#1D9E75;margin-top:3px">Claude AI 自動辨識韓文 → 繁體中文</div></div>
+    </div>
+    <label class="lbl">使用者</label><select id="f-user" class="sel"></select>
+    <label class="lbl">日期</label><input id="f-date" type="date" class="inp">
+    <label class="lbl">店名</label><input id="f-store" type="text" class="inp" placeholder="例：弘大 Olive Young">
+    <label class="lbl">品項</label><input id="f-items" type="text" class="inp" placeholder="例：精華液、面膜">
+    <label class="lbl">金額（韓元 KRW）</label>
+    <input id="f-amount" type="number" class="inp" placeholder="例：35000" oninput="updateTWD()">
+    <div id="f-twd" style="font-size:11px;color:#1D9E75;margin-top:-8px;margin-bottom:10px;display:none"></div>
+    <label class="lbl">類別</label><div id="f-cats" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <label class="lbl">付款方式</label><div id="f-pays" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <label class="lbl">備註（選填）</label><input id="f-note" type="text" class="inp" placeholder="選填">
+    <button class="btn-green" style="width:100%;padding:13px;border-radius:12px;font-size:15px;margin-top:4px" onclick="saveForm()"><span id="save-btn-label">新增收據</span></button>
+  </div>
+</div>
 
-async function ghPut(data, sha){
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
-  const body    = {message:`update ${new Date().toISOString()}`,content,branch:GH_BRANCH};
-  if(sha) body.sha = sha;
-  const res = await fetch(`${GH_API}/repos/${GH_REPO}/contents/${GH_FILE}`,{
-    method:"PUT", headers:ghHeaders(), body:JSON.stringify(body)
-  });
-  if(!res.ok){
-    const err = await res.json();
-    throw new Error(err.message||`儲存失敗 ${res.status}`);
+<!-- BUDGET MODAL -->
+<div id="bud-modal" class="modal-bg hidden">
+  <div class="modal-box" style="padding-bottom:40px">
+    <div style="width:36px;height:4px;border-radius:2px;background:#e0e0de;margin:0 auto 16px"></div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px">設定預算</div>
+    <div id="bud-inputs"></div>
+    <button class="btn-green" style="width:100%;padding:13px;border-radius:12px;font-size:15px;margin-top:8px" onclick="saveBudgets()">儲存</button>
+    <button class="btn" style="width:100%;padding:10px;border-radius:12px;font-size:13px;margin-top:8px" onclick="closeBudget()">取消</button>
+  </div>
+</div>
+
+<script>
+/* ═══════ STORAGE KEY ═══════ */
+const STORAGE_KEY = "seoul_shared_data";
+
+/* ═══════ CONSTANTS ═══════ */
+const USERS=["霈潔","珞熙","共同"];
+const UKEY={"霈潔":"pj","珞熙":"lx","共同":"co"};
+const CATS=["交通","餐飲","購物","住宿","門票","醫美","彩妝保養品","服飾"];
+const PAYS=["現金","信用卡","PayPay","T-money"];
+const CAT_CLR={交通:"#378ADD",餐飲:"#1D9E75",購物:"#D4537E",住宿:"#7F77DD",門票:"#F9A825",醫美:"#D85A30",彩妝保養品:"#639922",服飾:"#E24B4A"};
+const PAY_CLR={現金:"#7F77DD",信用卡:"#1D9E75",PayPay:"#D4537E","T-money":"#378ADD"};
+const BDEF=3000000;
+
+/* ═══════ ITINERARY ═══════ */
+const DAYS=[
+  {date:"4/14",day:"週二",emoji:"✈️",label:"出發日",
+   shared:[
+     {t:"17:00",title:"TW670 台中出發",sub:"台中國際機場 T2"},
+     {t:"20:45",title:"抵達仁川 T1",sub:"AREX → 首爾站 → 1號線 → 永登浦站，約60分"},
+     {t:"22:00",title:"入住 & 宵夜",sub:"永登浦巴莫斯飯店"},
+   ],pj:[],lx:[],warn:"飯店入住 21:00，提早14:00加收₩20,000，可提前寄放行李"},
+  {date:"4/15",day:"週三",emoji:"💉",label:"醫美日",
+   shared:[],
+   pj:[
+     {t:"11:00",title:"本思醫院 永登浦店 ⭐已預約",sub:"永登浦站5號出口步行1分鐘\n서울 영등포구 영중로 12 에쉐르빌딩 11층"},
+     {t:"療程",title:"霈潔療程",sub:"ONDA電波 · 皮秒雷射 · 麗珠蘭 · 肉毒 · 除痣/斑 · 膠原蛋白針（法令紋）"},
+     {t:"晚上",title:"清潭洞逛街 & 晚餐",sub:""},
+   ],
+   lx:[
+     {t:"11:00",title:"本思醫院 永登浦店 ⭐已預約",sub:"同上"},
+     {t:"療程",title:"珞熙療程",sub:"ONDA電波 · 皮秒雷射 · 麗珠蘭 · 肉毒 · 除痣/斑 · 膠原蛋白 · 除毛 · 嘴唇/下巴玻尿酸"},
+     {t:"晚上",title:"清潭洞逛街 & 晚餐",sub:""},
+   ],warn:"⚠️ 素顏到院！超過預約時間10分鐘自動取消\n施術後注意：linktr.ee/vandsplastictw"},
+  {date:"4/16",day:"週四",emoji:"🎨",label:"彩妝課 & 逛街",
+   shared:[],
+   pj:[
+     {t:"上午",title:"狎鷗亭羅德奧街自由逛",sub:"等珞熙彩妝課結束"},
+     {t:"13:00",title:"兩人會合！一起逛街",sub:"狎鷗亭 / 清潭洞 / 江南"},
+     {t:"下午",title:"Bunker Company → NUDAKE → Buly 1803",sub:"狎鷗亭購物"},
+     {t:"傍晚",title:"Starfield COEX Mall",sub:"星空圖書館打卡 + B1美食街晚餐"},
+   ],
+   lx:[
+     {t:"11:00",title:"🎨 彩妝課 Day 1（約2小時）",sub:"清潭洞 70-18 2樓\n청담동 70-18 2층\n清潭站12號出口步行3分鐘"},
+     {t:"13:00",title:"與霈潔會合，一起逛街",sub:""},
+     {t:"下午",title:"同霈潔行程",sub:"NUDAKE打卡、Buly美妝、COEX購物"},
+   ],warn:""},
+  {date:"4/17",day:"週五",emoji:"🏠",label:"霈潔回台",
+   shared:[],
+   pj:[
+     {t:"⚠️10:30前",title:"離開飯店！",sub:"行李前一晚整理好\n永登浦站 → 首爾站 → AREX → 仁川T1"},
+     {t:"11:30",title:"仁川機場辦 Check-in",sub:""},
+     {t:"13:55",title:"✈️ TW669 飛回台中",sub:"仁川T1 → 台中T2"},
+     {t:"16:00",title:"抵達台中 🏠",sub:""},
+   ],
+   lx:[
+     {t:"11:00",title:"🎨 彩妝課 Day 2（約2小時）",sub:"清潭洞 70-18 2樓（同昨日）"},
+     {t:"13:00",title:"下午自由行",sub:"弘大 / 東大門 / COEX 最後掃貨！"},
+     {t:"晚上",title:"回飯店整理行李！",sub:"⚠️ 明天週六 12:00 退房"},
+   ],warn:"⚠️ 霈潔：飛機 13:55，10:30 前務必離開飯店！"},
+  {date:"4/18",day:"週六",emoji:"✈️",label:"珞熙回台",
+   shared:[],
+   pj:[{t:"",title:"霈潔已在台灣 🏠",sub:""}],
+   lx:[
+     {t:"⚠️10:30前",title:"離開飯店！",sub:"週六 12:00 退房（比平日早！）"},
+     {t:"11:30",title:"仁川機場辦 Check-in",sub:""},
+     {t:"13:55",title:"✈️ TW669 飛回台中",sub:""},
+     {t:"16:00",title:"抵達台中 🏠",sub:""},
+   ],warn:"⚠️ 週六退房 12:00！10:30 前出發"},
+];
+
+const SPOTS=[
+  {emoji:"🏥",name:"本思醫院 永登浦店",cat:"醫美",tags:["已預約","4/15 11:00"],desc:"永登浦站5號出口步行1分鐘\n서울 영등포구 영중로 12 에쉐르빌딩 11층\nTEL: +82 2-6956-5113"},
+  {emoji:"🎨",name:"彩妝課地點",cat:"彩妝",tags:["珞熙","4/16-17 11:00"],desc:"清潭洞 70-18 2樓\n청담동 70-18 2층\n清潭站12號出口步行3分鐘"},
+  {emoji:"☕",name:"NUDAKE Haus Dosan",cat:"咖啡甜點",tags:["必打卡","清潭洞"],desc:"Gentle Monster 旗下藝術甜點廳\n同棟有 Gentle Monster & Tamburins 香氛\n📍 50 Apgujeong-ro 46-gil"},
+  {emoji:"☕",name:"Bunker Company",cat:"咖啡",tags:["狎鷗亭","評價極高"],desc:"精品咖啡廳，麵包超好吃\n📍 23 Eonju-ro 167-gil"},
+  {emoji:"🧴",name:"Buly 1803 清潭洞",cat:"美妝",tags:["送禮首選"],desc:"法國頂級香氛美妝，包裝超美\n📍 청담동 80-13"},
+  {emoji:"🛍",name:"狎鷗亭羅德奧街",cat:"購物",tags:["韓系潮牌","拍照打卡"],desc:"韓系潮牌、精品、美妝集中，逛街拍照都適合"},
+  {emoji:"🏬",name:"Starfield COEX Mall",cat:"購物中心",tags:["江南","星空圖書館"],desc:"超大購物中心，網紅星空圖書館必拍\nB1美食街晚餐，營業 10:30–22:00"},
+  {emoji:"💇",name:"Park Jun Beauty Lab",cat:"髮廊",tags:["需預約","★4.9"],desc:"首爾最知名髮廊\n📍 651 Samseong-ro, Gangnam\nTEL: +82 2-511-2342"},
+];
+
+/* ═══════ STATE ═══════ */
+let STATE={receipts:{pj:[],lx:[],co:[]},budgets:{pj:BDEF,lx:BDEF,co:1000000},updatedAt:""};
+let rate=null,activeUser="霈潔",viewUser="全部",catFilter="全部",editId=null,formCat="購物",formPay="現金",currentDay=0;
+
+/* ═══════ UTILS ═══════ */
+const today=()=>new Date().toISOString().slice(0,10);
+const uid=()=>Date.now()+"_"+Math.random().toString(36).slice(2,6);
+const krw=v=>`₩${Math.round(Number(v)||0).toLocaleString()}`;
+const twd=v=>rate?`NT$${Math.round((Number(v)||0)*rate).toLocaleString()}`:"";
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const $=id=>document.getElementById(id);
+const allR=()=>{const r=STATE.receipts;return[...(r.pj||[]),...(r.lx||[]),...(r.co||[])];};
+const baseR=()=>viewUser==="全部"?allR():(STATE.receipts[UKEY[viewUser]]||[]);
+const filtR=()=>{const b=baseR();return catFilter==="全部"?b:b.filter(r=>r.category===catFilter);};
+const sortedR=()=>[...filtR()].sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id)));
+
+/* ═══════ PERSISTENT STORAGE ═══════ */
+async function loadFromCloud(){
+  try{
+    const res=await window.storage.get(STORAGE_KEY,true);
+    if(res&&res.value){
+      const d=JSON.parse(res.value);
+      STATE=d;
+      setSyncUI("ok");
+    }else{
+      setSyncUI("ok");
+    }
+  }catch(e){
+    // 若沒有雲端存取，用 localStorage
+    try{
+      const local=localStorage.getItem(STORAGE_KEY);
+      if(local) STATE=JSON.parse(local);
+    }catch{}
+    setSyncUI("local");
   }
-  const json = await res.json();
-  return json.content?.sha;
+  renderExpense();
 }
 
-/* ════════════════════════════════════════
-   EXCHANGE RATE
-   ════════════════════════════════════════ */
+async function saveToCloud(){
+  setSyncUI("syncing");
+  const payload=JSON.stringify({...STATE,updatedAt:new Date().toISOString()});
+  try{
+    await window.storage.set(STORAGE_KEY,payload,true);
+    localStorage.setItem(STORAGE_KEY,payload);
+    STATE={...STATE,updatedAt:new Date().toISOString()};
+    setSyncUI("ok");
+  }catch{
+    // fallback to localStorage only
+    localStorage.setItem(STORAGE_KEY,payload);
+    setSyncUI("local");
+  }
+  renderExpense();
+}
+
+async function syncNow(){
+  setSyncUI("syncing");
+  await loadFromCloud();
+}
+
+function setSyncUI(s){
+  const map={
+    syncing:["#F9A825","同步中…"],
+    ok:["#1D9E75","✓ 已同步"],
+    local:["#378ADD","本機儲存"],
+    err:["#E24B4A","同步失敗"],
+  };
+  const[c,t]=map[s]||map.ok;
+  $("sync-dot").style.background=c;
+  $("sync-label").textContent=t;
+  const banner=$("sync-banner");
+  if(s==="ok"){banner.classList.remove("hidden");setTimeout(()=>banner.classList.add("hidden"),2000);}
+}
+
+/* ═══════ EXCHANGE RATE ═══════ */
 async function fetchRate(){
   try{
     const r=await fetch("https://api.exchangerate-api.com/v4/latest/KRW");
-    const d=await r.json();
-    return d.rates?.TWD||null;
-  }catch{return null;}
+    const d=await r.json();rate=d.rates?.TWD||null;
+    if(rate)$("rate-label").textContent=`1KRW=NT$${rate.toFixed(4)}`;
+  }catch{rate=null;}
 }
 
-/* ════════════════════════════════════════
-   CLAUDE VISION
-   ════════════════════════════════════════ */
-async function scanReceipt(b64){
-  const prompt=`這是韓國收據。請以純JSON格式回答（不含markdown，不含其他文字）：
-{"store":"店名（繁體中文）","items":"品項（繁體中文，逗號分隔）","amount":"金額（數字，韓元）","category":"從以下選一：交通/餐飲/購物/住宿/門票/醫美/彩妝保養品/服飾","note":"備註"}`;
-  const res=await fetch("https://api.anthropic.com/v1/messages",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      model:"claude-sonnet-4-20250514",max_tokens:500,
-      messages:[{role:"user",content:[
-        {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
-        {type:"text",text:prompt}
-      ]}]
-    })
-  });
-  const d=await res.json();
-  const text=d.content?.[0]?.text||"{}";
-  return JSON.parse(text.replace(/```json|```/g,"").trim());
-}
-
-/* ════════════════════════════════════════
-   EXCEL EXPORT
-   ════════════════════════════════════════ */
-function exportXLSX(receipts,rate){
-  const all=[...receipts.pj,...receipts.lx,...receipts.co].sort((a,b)=>a.date.localeCompare(b.date));
-  const rows=[
-    ["日期","使用者","店名","品項","金額(KRW)","金額(TWD)","類別","付款方式","備註"],
-    ...all.map(r=>[r.date,r.user,r.store,r.items,Number(r.amount)||0,
-      rate?Math.round((Number(r.amount)||0)*rate):"",r.category,r.payMethod,r.note]),
-    [],[" 總計","","","",all.reduce((s,r)=>s+(Number(r.amount)||0),0),
-      rate?Math.round(all.reduce((s,r)=>s+(Number(r.amount)||0),0)*rate):"","","",""]
-  ];
+/* ═══════ EXCEL ═══════ */
+function exportXLSX(){
+  const all=allR().sort((a,b)=>a.date.localeCompare(b.date));
+  const rows=[["日期","使用者","店名","品項","金額(KRW)","金額(TWD)","類別","付款方式","備註"],
+    ...all.map(r=>[r.date,r.user,r.store,r.items,Number(r.amount)||0,rate?Math.round((Number(r.amount)||0)*rate):"",r.category,r.payMethod,r.note]),
+    [],[" 總計","","","",all.reduce((s,r)=>s+(Number(r.amount)||0),0),rate?Math.round(all.reduce((s,r)=>s+(Number(r.amount)||0),0)*rate):"","","",""]];
   const ws=XLSX.utils.aoa_to_sheet(rows);
   ws["!cols"]=[10,8,18,22,14,12,14,10,18].map(w=>({wch:w}));
-  ["A1","B1","C1","D1","E1","F1","G1","H1","I1"].forEach(c=>{
-    if(ws[c])ws[c].s={font:{bold:true},fill:{fgColor:{rgb:"E8F5EF"}}};
-  });
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"首爾消費紀錄");
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"首爾消費紀錄");
   XLSX.writeFile(wb,`首爾消費_${today()}.xlsx`);
 }
 
-/* ════════════════════════════════════════
-   COMPONENTS
-   ════════════════════════════════════════ */
-
-function ProgressBar({pct,color}){
-  const c=color||(pct>80?"#E24B4A":pct>60?"#F9A825":"#1D9E75");
-  return(
-    <div style={{height:7,borderRadius:4,background:"#ededeb",overflow:"hidden"}}>
-      <div style={{width:`${clamp(pct,0,100)}%`,height:"100%",background:c,borderRadius:4,transition:"width .4s ease"}}/>
-    </div>
-  );
+/* ═══════ CLAUDE VISION ═══════ */
+async function scanReceipt(b64){
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:400,
+      messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
+        {type:"text",text:`這是韓國收據。純JSON回答：{"store":"店名繁體中文","items":"品項逗號分隔","amount":"金額數字韓元","category":"交通/餐飲/購物/住宿/門票/醫美/彩妝保養品/服飾選一","note":"備註"}`}]}]})});
+  const d=await res.json();
+  return JSON.parse((d.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim());
 }
 
-function Badge({label,color}){
-  return <span style={{fontSize:10,padding:"2px 7px",borderRadius:10,background:color+"22",color,fontWeight:500,whiteSpace:"nowrap"}}>{label}</span>;
+/* ═══════ RENDER ITINERARY ═══════ */
+function renderTrip(){
+  $("day-tabs").innerHTML=DAYS.map((d,i)=>`<button class="day-tab ${i===currentDay?"active":""}" onclick="setDay(${i})">${d.emoji} ${d.date}</button>`).join("");
+  const d=DAYS[currentDay];
+  let html=`<div class="day-header"><div class="day-title">${d.emoji} ${d.date}（${d.day}）· ${d.label}</div></div>`;
+  if(d.warn)html+=`<div class="warn-box">${d.warn.replace(/\n/g,"<br>")}</div>`;
+  d.shared.forEach(r=>{html+=tRow(r);});
+  if(d.pj.length||d.lx.length){
+    const col=(rows,cls,title)=>`<div class="user-col ${cls}"><div class="ucol-title">${title}</div>${rows.map(r=>`<div class="ucol-item"><strong>${r.t}</strong><br>${r.title}${r.sub?`<br><span style="font-size:10px;color:#888">${r.sub.replace(/\n/g,"<br>")}</span>`:""}</div>`).join("")}</div>`;
+    html+=`<div class="two-col">${col(d.pj,"user-col-pj","💗 霈潔")}${col(d.lx,"user-col-lx","💙 珞熙")}</div>`;
+  }
+  $("day-content").innerHTML=html;
+}
+function tRow(r){return`<div class="time-row"><div class="time-badge">${r.t}</div><div><div class="time-title">${r.title}</div>${r.sub?`<div class="time-sub">${r.sub.replace(/\n/g,"<br>")}</div>`:""}</div></div>`;}
+function setDay(i){currentDay=i;renderTrip();}
+
+/* ═══════ RENDER SPOTS ═══════ */
+function renderSpots(){
+  $("spots-content").innerHTML=SPOTS.map(s=>`<div class="spot-card"><div class="spot-name">${s.emoji} ${s.name}</div><div class="spot-desc">${s.desc.replace(/\n/g,"<br>")}</div><div class="spot-tags"><span class="spot-tag" style="background:#eef8f4;color:#1D9E75">${s.cat}</span>${s.tags.map(t=>`<span class="spot-tag">${t}</span>`).join("")}</div></div>`).join("");
 }
 
-function SyncBar({status,msg,onSync}){
-  const clr={idle:"#aaa",syncing:"#F9A825",ok:"#1D9E75",err:"#E24B4A"}[status];
-  const lbl={idle:"未同步",syncing:"同步中…",ok:"✓ 已同步",err:"✗ 同步失敗"}[status];
-  return(
-    <div style={{display:"flex",alignItems:"center",gap:8,fontSize:11}}>
-      <span style={{color:clr,fontWeight:500}}>{lbl}</span>
-      {msg&&<span style={{color:"#aaa"}}>{msg}</span>}
-      {status!=="syncing"&&<button onClick={onSync} style={{padding:"2px 8px",borderRadius:6,border:"0.5px solid #d0d0ce",background:"transparent",color:"#888",fontSize:10}}>↻</button>}
-    </div>
-  );
+/* ═══════ RENDER INFO ═══════ */
+function renderInfo(){
+  const ir=(l,v)=>`<div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start"><span style="font-size:11px;color:#aaa;min-width:32px;flex-shrink:0;padding-top:1px">${l}</span><span style="font-size:12px;color:#333;flex:1">${v}</span></div>`;
+  $("info-content").innerHTML=`
+  <div class="card"><div style="font-weight:700;margin-bottom:10px">🏨 飯店</div>
+    ${ir("名稱","首爾巴莫斯飯店")}${ir("地址","永登浦路47街 8-1（서울 영등포구 영등포로 47길 8-1）")}
+    ${ir("入住","21:00 · 提前14:00加收₩20,000 · 可寄行李")}${ir("退房","平日13:00 · ⚠️週六日12:00")}${ir("訂單","1616328787173574")}
+  </div>
+  <div class="card"><div style="font-weight:700;margin-bottom:10px">✈️ 航班</div>
+    ${ir("去程","4/14 TW670 · 台中17:00→仁川20:45 · 兩人")}
+    ${ir("霈潔","4/17 TW669 · 仁川13:55→台中16:00")}
+    ${ir("珞熙","4/18 TW669 · 仁川13:55→台中16:00")}
+  </div>
+  <div class="card"><div style="font-weight:700;margin-bottom:10px">🚇 交通</div>
+    <div class="info-box">💳 T-money：仁川機場T1 GS25/CU購買₩4,000，建議儲值₩30,000–50,000</div>
+    ${[["仁川→飯店","AREX→首爾站→1號線永登浦","60分","₩4,150"],
+       ["永登浦→狎鷗亭","2號線(永登浦區廳)→盆唐線(狎鷗亭羅德奧)","45分","₩1,600"],
+       ["永登浦→清潭洞","同上+步行5分","48分","₩1,600"],
+       ["永登浦→弘大","2號線直達弘大入口站","20分","₩1,400"],
+       ["飯店→仁川","永登浦→首爾站→AREX直達T1","60分","₩4,150"],
+    ].map(([f,h,t,c])=>`<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid #f5f5f3"><div style="font-size:12px;font-weight:600;margin-bottom:2px">${f}</div><div style="font-size:11px;color:#666;margin-bottom:2px">${h}</div><div style="font-size:11px;color:#aaa">⏱${t} &nbsp;💰${c}</div></div>`).join("")}
+  </div>
+  <div class="card"><div style="font-weight:700;margin-bottom:10px">💰 韓元換算</div>
+    ${["₩10,000≈NT$240","₩50,000≈NT$1,200","₩100,000≈NT$2,400","₩500,000≈NT$12,000"].map(v=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid #f5f5f3;font-size:13px"><span style="color:#888">${v.split("≈")[0]}</span><span style="font-weight:600;color:#1D9E75">≈${v.split("≈")[1]}</span></div>`).join("")}
+    ${rate?`<div style="font-size:11px;color:#aaa;margin-top:8px">即時匯率：1 KRW = NT$${rate.toFixed(4)}</div>`:""}
+  </div>
+  <div class="card"><div style="font-weight:700;margin-bottom:10px">🆘 緊急聯絡</div>
+    ${[["台灣駐韓代表處","+82-2-399-2767"],["救護車","119"],["警察","112"],["仁川機場遺失物","+82-32-741-2121"]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid #f5f5f3;font-size:13px"><span style="color:#888">${l}</span><span style="font-weight:600;color:#E24B4A">${v}</span></div>`).join("")}
+  </div>`;
 }
 
-function ReceiptCard({r,rate,onEdit,onDel,full}){
+/* ═══════ RENDER EXPENSE ═══════ */
+function renderExpense(){
+  renderUserChips();renderViewPills();renderDash();renderList();renderCharts();
+}
+function renderUserChips(){
+  $("user-chips").innerHTML=USERS.map(u=>`<button onclick="setActiveUser('${u}')" style="padding:4px 10px;border-radius:16px;font-size:11px;font-weight:${activeUser===u?600:400};background:${activeUser===u?"#534AB7":"#ededeb"};color:${activeUser===u?"#fff":"#888"};border:none">${u}</button>`).join("");
+}
+function renderViewPills(){
+  $("view-pills").innerHTML=["全部",...USERS].map(u=>`<button class="pill ${viewUser===u?"active":""}" onclick="setViewUser('${u}')">${u}</button>`).join(" ");
+}
+function renderDash(){
+  const b=baseR(),tod=today();
+  const todT=b.filter(r=>r.date===tod).reduce((s,r)=>s+(Number(r.amount)||0),0);
+  const tripT=b.reduce((s,r)=>s+(Number(r.amount)||0),0);
+  const aB=viewUser==="全部"?Object.values(STATE.budgets).reduce((s,v)=>s+v,0):(STATE.budgets[UKEY[viewUser]]||BDEF);
+  const pct=clamp(aB>0?Math.round(tripT/aB*100):0,0,100),bc=pct>80?"#E24B4A":pct>60?"#F9A825":"#1D9E75";
+  $("today-total").textContent=krw(todT);$("today-twd").textContent=twd(todT);
+  $("trip-total").textContent=krw(tripT);$("trip-twd").textContent=twd(tripT);
+  $("bud-bar").style.width=pct+"%";$("bud-bar").style.background=bc;
+  $("bud-pct").textContent=`已用 ${pct}%`;$("bud-pct").style.color=bc;
+  $("bud-total").textContent=`預算 ${krw(aB)}`;
+  $("user-budgets").innerHTML=USERS.map(u=>{
+    const k=UKEY[u],tot=(STATE.receipts[k]||[]).reduce((s,r)=>s+(Number(r.amount)||0),0),bud=STATE.budgets[k]||BDEF,p=clamp(bud>0?Math.round(tot/bud*100):0,0,100),c=p>80?"#E24B4A":p>60?"#F9A825":"#1D9E75";
+    return`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">${u}</span><span style="color:#aaa">${krw(tot)}${rate?" · "+twd(tot):""}</span></div><div class="prog-wrap"><div class="prog-bar" style="width:${p}%;background:${c}"></div></div><div style="text-align:right;font-size:10px;color:#ccc;margin-top:2px">預算${krw(bud)}·剩${krw(Math.max(0,bud-tot))}</div></div>`;
+  }).join("");
+  const sr=sortedR().slice(0,5);
+  $("recent-list").innerHTML=sr.length?sr.map(r=>rcHTML(r,false)).join(""):`<div style="text-align:center;color:#ccc;padding:36px 0">尚無紀錄，按右下角 + 開始記帳</div>`;
+}
+function renderList(){
+  $("cat-filters").innerHTML=["全部",...CATS].map(c=>{const a=catFilter===c,clr=CAT_CLR[c];return`<button class="tag ${a?"active":""}" onclick="setCatFilter('${c}')" style="${a&&clr?`border-color:${clr};background:${clr}18;color:${clr}`:""}">${c}</button>`;}).join("");
+  const sr=sortedR(),tot=sr.reduce((s,r)=>s+(Number(r.amount)||0),0);
+  $("list-meta").textContent=`${sr.length} 筆 · 合計 ${krw(tot)}`;
+  $("full-list").innerHTML=sr.length?sr.map(r=>rcHTML(r,true)).join(""):`<div style="text-align:center;color:#ccc;padding:36px 0">無紀錄</div>`;
+}
+function rcHTML(r,full){
   const clr=CAT_CLR[r.category]||"#888";
-  return(
-    <div className="fade" style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:14,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.store||"（未命名）"}</div>
-          {r.items&&<div style={{fontSize:11,color:"#999",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.items}</div>}
-        </div>
-        <div style={{textAlign:"right",flexShrink:0}}>
-          <div style={{fontSize:15,fontWeight:700}}>{krwFmt(r.amount)}</div>
-          {rate&&<div style={{fontSize:10,color:"#aaa"}}>{twdFmt(r.amount,rate)}</div>}
-        </div>
-      </div>
-      <div style={{display:"flex",gap:5,marginTop:8,flexWrap:"wrap",alignItems:"center"}}>
-        <span style={{fontSize:10,color:"#bbb"}}>{r.date}</span>
-        <Badge label={r.category} color={clr}/>
-        <Badge label={r.payMethod} color="#888"/>
-        <Badge label={r.user} color="#534AB7"/>
-        {r.note&&<span style={{fontSize:10,color:"#ccc"}}>{r.note}</span>}
-      </div>
-      {full&&(
-        <div style={{display:"flex",gap:6,marginTop:10,borderTop:"0.5px solid #f0f0ee",paddingTop:10}}>
-          <button onClick={()=>onEdit(r)} style={{padding:"5px 14px",borderRadius:7,border:"0.5px solid #d0d0ce",background:"transparent",color:"#1a1a1a",fontSize:11,fontWeight:500}}>編輯</button>
-          <button onClick={()=>{if(confirm("確定刪除？"))onDel(r.id,UKEY[r.user]||"pj")}} style={{padding:"5px 12px",borderRadius:7,border:"0.5px solid #fcc",background:"transparent",color:"#E24B4A",fontSize:11}}>刪除</button>
-        </div>
-      )}
-    </div>
-  );
+  return`<div class="rcard"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.store||"（未命名）"}</div>${r.items?`<div style="font-size:11px;color:#999;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.items}</div>`:""}</div><div style="text-align:right;flex-shrink:0"><div style="font-size:15px;font-weight:700">${krw(r.amount)}</div>${rate?`<div style="font-size:10px;color:#aaa">${twd(r.amount)}</div>`:""}</div></div><div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;align-items:center"><span style="font-size:10px;color:#bbb">${r.date}</span><span class="badge" style="background:${clr}22;color:${clr}">${r.category}</span><span class="badge" style="background:#88888820;color:#888">${r.payMethod}</span><span class="badge" style="background:#534AB720;color:#534AB7">${r.user}</span>${r.note?`<span style="font-size:10px;color:#ccc">${r.note}</span>`:""}</div>${full?`<div style="display:flex;gap:6px;margin-top:10px;border-top:0.5px solid #f0f0ee;padding-top:10px"><button class="btn" style="font-size:11px" onclick="openForm('${r.id}')">編輯</button><button class="btn" style="font-size:11px;color:#E24B4A;border-color:#fcc" onclick="delR('${r.id}','${UKEY[r.user]||"pj"}')">刪除</button></div>`:""}</div>`;
+}
+function renderCharts(){
+  const b=baseR(),tripT=b.reduce((s,r)=>s+(Number(r.amount)||0),0);
+  renderPie("cat-pie",CATS.map(c=>({name:c,value:b.filter(r=>r.category===c).reduce((s,r)=>s+(Number(r.amount)||0),0),color:CAT_CLR[c]})).filter(d=>d.value>0),tripT);
+  renderPie("pay-pie",PAYS.map(p=>({name:p,value:b.filter(r=>r.payMethod===p).reduce((s,r)=>s+(Number(r.amount)||0),0),color:PAY_CLR[p]})).filter(d=>d.value>0),tripT);
+  const dates=[...new Set(b.map(r=>r.date))].sort(),dT=dates.map(d=>({d:d.slice(5),v:b.filter(r=>r.date===d).reduce((s,r)=>s+(Number(r.amount)||0),0)}));
+  const mx=Math.max(...dT.map(d=>d.v),1);
+  $("day-bar").innerHTML=dT.length?dT.map(d=>`<div class="bar-col"><div class="bar-fill" style="height:${Math.round(d.v/mx*80)}px"></div><div class="bar-label">${d.d}</div></div>`).join(""):`<div style="color:#ccc;font-size:12px;margin:auto">尚無資料</div>`;
+  $("cat-detail").innerHTML=CATS.map(c=>{
+    const val=b.filter(r=>r.category===c).reduce((s,r)=>s+(Number(r.amount)||0),0);if(!val)return"";
+    const pct=tripT>0?Math.round(val/tripT*100):0;
+    return`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:${CAT_CLR[c]};display:inline-block"></span>${c}</span><span style="color:#aaa">${krw(val)}${rate?" · "+twd(val):""}（${pct}%）</span></div><div style="height:5px;border-radius:3px;background:${CAT_CLR[c]}25"><div style="width:${pct}%;height:100%;background:${CAT_CLR[c]};border-radius:3px"></div></div></div>`;
+  }).join("")||`<div style="color:#ccc;font-size:12px;text-align:center;padding:20px">尚無資料</div>`;
+}
+function renderPie(id,data,total){
+  if(!data.length){$(id).innerHTML=`<div style="color:#ccc;font-size:12px;padding:20px">尚無資料</div>`;return;}
+  let deg=0;
+  const stops=data.map(d=>{const pct=total>0?d.value/total*100:0,s=`${d.color} ${deg}% ${deg+pct}%`;deg+=pct;return s;});
+  $(id).innerHTML=`<div class="pie" style="background:conic-gradient(${stops.join(",")})"></div><div class="legend">${data.map(d=>`<div class="legend-item"><div class="legend-dot" style="background:${d.color}"></div><span>${d.name}</span><span style="color:#aaa;margin-left:4px">${total>0?Math.round(d.value/total*100):0}%</span></div>`).join("")}</div>`;
 }
 
-/* ════════════════════════════════════════
-   MAIN APP
-   ════════════════════════════════════════ */
-function App(){
-  const [token,    setToken]    = useState(()=>localStorage.getItem(LS_TOKEN)||"");
-  const [tokenInput,setTokenInput]=useState("");
-  const [data,     setData]     = useState(EMPTY_DATA);
-  const [sha,      setSha]      = useState(null);
-  const [rate,     setRate]     = useState(null);
-  const [tab,      setTab]      = useState("dash");
-  const [activeU,  setActiveU]  = useState("霈潔");
-  const [viewU,    setViewU]    = useState("全部");
-  const [catF,     setCatF]     = useState("全部");
-  const [showForm, setShowForm] = useState(false);
-  const [form,     setForm]     = useState(null);
-  const [editId,   setEditId]   = useState(null);
-  const [scanLoad, setScanLoad] = useState(false);
-  const [scanMsg,  setScanMsg]  = useState("");
-  const [budEdit,  setBudEdit]  = useState(false);
-  const [budVal,   setBudVal]   = useState("");
-  const [syncSt,   setSyncSt]   = useState("idle");
-  const [syncMsg,  setSyncMsg]  = useState("");
-  const [loading,  setLoading]  = useState(true);
-  const fileRef = useRef();
-  const shaRef  = useRef(null);
-
-  function handleSaveToken(){
-    const t=tokenInput.trim();
-    if(!t.startsWith("ghp_")){alert("Token 格式不對，應以 ghp_ 開頭");return;}
-    localStorage.setItem(LS_TOKEN,t);
-    setToken(t);
-  }
-
-  /* init */
-  useEffect(()=>{
-    if(!token)return;
-    Promise.all([
-      ghGet().then(({data:d,sha:s})=>{setData(d);setSha(s);shaRef.current=s;setSyncSt("ok");setSyncMsg("已載入")}).catch(e=>{setSyncSt("err");setSyncMsg(e.message)}),
-      fetchRate().then(setRate)
-    ]).finally(()=>setLoading(false));
-  },[token]);
-
-  if(!token) return(
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f7f7f5",padding:20}}>
-      <div style={{background:"#fff",borderRadius:20,padding:"32px 24px",maxWidth:400,width:"100%",border:"0.5px solid #e8e8e6"}}>
-        <div style={{textAlign:"center",marginBottom:24}}>
-          <div style={{fontSize:40,marginBottom:8}}>🇰🇷</div>
-          <div style={{fontSize:18,fontWeight:700}}>首爾旅遊記帳</div>
-          <div style={{fontSize:12,color:"#aaa",marginTop:4}}>霈潔 & 珞熙 · 2026/04/14–18</div>
-        </div>
-        <div style={{fontSize:12,color:"#888",marginBottom:6,fontWeight:600}}>輸入 GitHub Token（只存在你的裝置）</div>
-        <input value={tokenInput} onChange={e=>setTokenInput(e.target.value)} placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" type="password"
-          style={{width:"100%",padding:"11px 12px",borderRadius:10,border:"0.5px solid #d0d0ce",fontSize:13,marginBottom:8}}/>
-        <div style={{fontSize:11,color:"#aaa",marginBottom:16,lineHeight:1.7}}>
-          Token 只存在瀏覽器，不會出現在程式碼。<br/>
-          需要勾選 <strong>repo</strong> 權限。<br/>
-          霈潔和珞熙各自在自己手機輸入同一個 Token。
-        </div>
-        <button onClick={handleSaveToken} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"#1D9E75",color:"#fff",fontSize:15,fontWeight:700}}>開始使用</button>
-        <button onClick={()=>{localStorage.removeItem(LS_TOKEN);}} style={{width:"100%",padding:"8px",borderRadius:12,border:"none",background:"transparent",color:"#ccc",fontSize:11,marginTop:8}}>清除已儲存的 Token</button>
-      </div>
-    </div>
-  );
-
-  /* auto pull every 45s */
-  useEffect(()=>{
-    const t=setInterval(()=>pull(true),45000);
-    return()=>clearInterval(t);
-  },[]);
-
-  async function pull(silent=false){
-    if(!silent)setSyncSt("syncing");
-    try{
-      const {data:d,sha:s}=await ghGet();
-      setData(d);setSha(s);shaRef.current=s;
-      if(!silent){setSyncSt("ok");setSyncMsg(new Date().toTimeString().slice(0,5)+" 同步");}
-    }catch(e){if(!silent){setSyncSt("err");setSyncMsg(e.message);}}
-  }
-
-  async function push(newData){
-    setSyncSt("syncing");
-    try{
-      const payload={...newData,updatedAt:new Date().toISOString()};
-      const newSha=await ghPut(payload,shaRef.current);
-      setSha(newSha);shaRef.current=newSha;
-      setData(payload);
-      setSyncSt("ok");setSyncMsg(new Date().toTimeString().slice(0,5)+" 已存");
-    }catch(e){
-      setSyncSt("err");setSyncMsg(e.message);
-      if(e.message.includes("409")||e.message.includes("conflict")){
-        setSyncMsg("衝突！重新拉取中…");
-        await pull();
-      }
-    }
-  }
-
-  /* derived */
-  const receipts=data.receipts||{pj:[],lx:[],co:[]};
-  const budgets =data.budgets ||{pj:BUDGET_DEF,lx:BUDGET_DEF,co:1000000};
-
-  const baseR = useMemo(()=>{
-    if(viewU==="全部") return [...(receipts.pj||[]),...(receipts.lx||[]),...(receipts.co||[])];
-    return receipts[UKEY[viewU]]||[];
-  },[receipts,viewU]);
-
-  const filtR  = useMemo(()=>catF==="全部"?baseR:baseR.filter(r=>r.category===catF),[baseR,catF]);
-  const sortedR= useMemo(()=>[...filtR].sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id)),[filtR]);
-
-  const tod        = today();
-  const todayTotal = baseR.filter(r=>r.date===tod).reduce((s,r)=>s+(Number(r.amount)||0),0);
-  const tripTotal  = baseR.reduce((s,r)=>s+(Number(r.amount)||0),0);
-  const activeBud  = viewU==="全部"?Object.values(budgets).reduce((s,v)=>s+v,0):(budgets[UKEY[viewU]]||BUDGET_DEF);
-  const budPct     = clamp(activeBud>0?Math.round(tripTotal/activeBud*100):0,0,100);
-
-  const catData = useMemo(()=>CATEGORIES.map(c=>({name:c,value:baseR.filter(r=>r.category===c).reduce((s,r)=>s+(Number(r.amount)||0),0)})).filter(d=>d.value>0),[baseR]);
-  const payData = useMemo(()=>PAY.map(p=>({name:p,value:baseR.filter(r=>r.payMethod===p).reduce((s,r)=>s+(Number(r.amount)||0),0)})).filter(d=>d.value>0),[baseR]);
-
-  /* actions */
-  function updReceipts(newR){
-    const newData={...data,receipts:newR};
-    setData(newData);
-    push(newData);
-  }
-
-  function handleDel(id,key){
-    const newR={...receipts,[key]:(receipts[key]||[]).filter(r=>r.id!==id)};
-    updReceipts(newR);
-  }
-
-  function handleEdit(r){setForm({...r});setEditId(r.id);setShowForm(true);setScanMsg("");}
-  function handleNew(){setForm(newReceipt(activeU));setEditId(null);setShowForm(true);setScanMsg("");}
-
-  function handleSave(){
-    if(!form)return;
-    const key=UKEY[form.user]||"pj";
-    const list=receipts[key]||[];
-    const newList=editId?list.map(r=>r.id===editId?form:r):[{...form,id:uid()},...list];
-    updReceipts({...receipts,[key]:newList});
-    setShowForm(false);setForm(null);setEditId(null);
-  }
-
-  async function handleImg(e){
-    const file=e.target.files[0];if(!file)return;
-    const reader=new FileReader();
-    reader.onload=async ev=>{
-      const b64=ev.target.result.split(",")[1];
-      setForm(f=>({...f,img:b64}));
-      setScanLoad(true);setScanMsg("AI 辨識中…");
-      try{
-        const parsed=await scanReceipt(b64);
-        setForm(f=>({...f,...parsed,img:b64}));
-        setScanMsg("✓ 辨識完成！");
-      }catch{setScanMsg("辨識失敗，請手動填寫");}
-      setScanLoad(false);
-    };
-    reader.readAsDataURL(file);e.target.value="";
-  }
-
-  function handleBudSave(){
-    const v=Number(budVal);if(!v)return;
-    const key=viewU==="全部"?UKEY[activeU]:UKEY[viewU];
-    const newB={...budgets,[key]:v};
-    const newData={...data,budgets:newB};
-    setData(newData);push(newData);
-    setBudEdit(false);
-  }
-
-  if(loading) return(
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:12}}>
-      <div style={{fontSize:32}}>🇰🇷</div>
-      <div style={{fontSize:13,color:"#888"}}>載入中…</div>
-    </div>
-  );
-
-  return(
-    <div style={{minHeight:"100vh",background:"#f7f7f5",paddingBottom:100}}>
-
-      {/* ── HEADER ── */}
-      <div style={{background:"#fff",borderBottom:"0.5px solid #e8e8e6",padding:"12px 16px",position:"sticky",top:0,zIndex:100}}>
-        <div style={{maxWidth:680,margin:"0 auto"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-            <div>
-              <div style={{fontSize:16,fontWeight:700,letterSpacing:-0.3}}>🇰🇷 首爾旅遊記帳</div>
-              <div style={{fontSize:10,color:"#aaa",marginTop:1}}>{TRIP_START} ～ {TRIP_END} · {rate?`1 KRW=NT$${rate.toFixed(4)}`:"匯率載入中"}</div>
-            </div>
-            <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
-              <SyncBar status={syncSt} msg={syncMsg} onSync={()=>pull()}/>
-              <button onClick={()=>{localStorage.removeItem(LS_TOKEN);window.location.reload();}} style={{padding:"2px 8px",borderRadius:6,border:"0.5px solid #f0d0d0",background:"transparent",color:"#E24B4A",fontSize:10}} title="登出 / 更換 Token">登出</button>
-              <div style={{display:"flex",gap:4}}>
-                {USERS.map(u=>(
-                  <button key={u} onClick={()=>{setActiveU(u);setViewU(u);}} style={{padding:"4px 10px",borderRadius:16,fontSize:11,fontWeight:activeU===u?600:400,background:activeU===u?"#534AB7":"#ededeb",color:activeU===u?"#fff":"#888",border:"none"}}>
-                    {u}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{maxWidth:680,margin:"0 auto",padding:"0 14px"}}>
-
-        {/* ── TABS ── */}
-        <div style={{display:"flex",background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,overflow:"hidden",marginTop:14}}>
-          {[["dash","總覽"],["list","收據列表"],["chart","統計圖表"]].map(([k,v])=>(
-            <button key={k} style={{flex:1,padding:"10px 4px",fontSize:12,fontWeight:tab===k?600:400,textAlign:"center",background:tab===k?"#eef8f4":"transparent",color:tab===k?"#1D9E75":"#888",border:"none",transition:"all .15s"}} onClick={()=>setTab(k)}>{v}</button>
-          ))}
-        </div>
-
-        {/* view filter */}
-        <div style={{display:"flex",gap:6,marginTop:12,marginBottom:2,flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{fontSize:11,color:"#aaa"}}>顯示：</span>
-          {["全部",...USERS].map(u=>(
-            <button key={u} onClick={()=>setViewU(u)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:viewU===u?600:400,border:`0.5px solid ${viewU===u?"#1D9E75":"#e0e0de"}`,background:viewU===u?"#eef8f4":"transparent",color:viewU===u?"#1D9E75":"#888"}}>
-              {u}
-            </button>
-          ))}
-          <button onClick={()=>exportXLSX(receipts,rate)} style={{marginLeft:"auto",padding:"4px 10px",borderRadius:20,fontSize:11,border:"0.5px solid #e0e0de",background:"transparent",color:"#888"}}>📊 匯出</button>
-        </div>
-
-        {/* ══ DASHBOARD ══ */}
-        {tab==="dash"&&<div className="fade">
-          {/* metrics */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:10}}>
-            {[["今日花費",todayTotal],["旅程累計",tripTotal]].map(([lbl,val])=>(
-              <div key={lbl} style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px"}}>
-                <div style={{fontSize:11,color:"#aaa",marginBottom:4}}>{lbl}</div>
-                <div style={{fontSize:22,fontWeight:700,letterSpacing:-0.5}}>{krwFmt(val)}</div>
-                {rate&&<div style={{fontSize:11,color:"#1D9E75",marginTop:2}}>{twdFmt(val,rate)}</div>}
-              </div>
-            ))}
-          </div>
-
-          {/* budget */}
-          <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <span style={{fontSize:13,fontWeight:600}}>預算進度</span>
-              {budEdit?(
-                <div style={{display:"flex",gap:5,alignItems:"center"}}>
-                  <input value={budVal} onChange={e=>setBudVal(e.target.value)} placeholder="韓元" style={{padding:"6px 8px",borderRadius:7,border:"0.5px solid #d0d0ce",width:110,fontSize:12}}/>
-                  <button onClick={handleBudSave} style={{padding:"6px 12px",borderRadius:7,border:"none",background:"#1D9E75",color:"#fff",fontSize:12}}>存</button>
-                  <button onClick={()=>setBudEdit(false)} style={{padding:"6px 10px",borderRadius:7,border:"0.5px solid #d0d0ce",background:"transparent",color:"#888",fontSize:12}}>✕</button>
-                </div>
-              ):<button onClick={()=>{setBudVal(activeBud);setBudEdit(true)}} style={{padding:"5px 12px",borderRadius:7,border:"0.5px solid #d0d0ce",background:"transparent",color:"#888",fontSize:11}}>設定預算</button>}
-            </div>
-            <ProgressBar pct={budPct}/>
-            <div style={{display:"flex",justifyContent:"space-between",marginTop:5,fontSize:11}}>
-              <span style={{color:budPct>80?"#E24B4A":budPct>60?"#F9A825":"#1D9E75",fontWeight:600}}>已用 {budPct}%</span>
-              <span style={{color:"#aaa"}}>預算 {krwFmt(activeBud)}</span>
-            </div>
-          </div>
-
-          {/* per-user */}
-          <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
-            <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>各人花費</div>
-            {USERS.map(u=>{
-              const k=UKEY[u];
-              const tot=(receipts[k]||[]).reduce((s,r)=>s+(Number(r.amount)||0),0);
-              const bud=budgets[k]||BUDGET_DEF;
-              const pct=clamp(bud>0?Math.round(tot/bud*100):0,0,100);
-              return(
-                <div key={u} style={{marginBottom:12}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}>
-                    <span style={{fontWeight:600}}>{u}</span>
-                    <span style={{color:"#aaa"}}>{krwFmt(tot)}{rate?` · ${twdFmt(tot,rate)}`:""}</span>
-                  </div>
-                  <ProgressBar pct={pct}/>
-                  <div style={{textAlign:"right",fontSize:10,color:"#ccc",marginTop:2}}>預算 {krwFmt(bud)} · 剩 {krwFmt(Math.max(0,bud-tot))}</div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* recent */}
-          <div style={{fontSize:13,fontWeight:600,margin:"14px 0 8px"}}>最近消費</div>
-          {sortedR.slice(0,5).map(r=><ReceiptCard key={r.id} r={r} rate={rate} onEdit={handleEdit} onDel={handleDel}/>)}
-          {sortedR.length===0&&<div style={{textAlign:"center",color:"#ccc",padding:"40px 0",fontSize:13}}>尚無紀錄，按右下角 + 開始記帳</div>}
-        </div>}
-
-        {/* ══ LIST ══ */}
-        {tab==="list"&&<div className="fade">
-          <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:10,marginBottom:10}}>
-            {["全部",...CATEGORIES].map(c=>(
-              <button key={c} onClick={()=>setCatF(c)} style={{padding:"4px 9px",borderRadius:20,fontSize:10,border:`0.5px solid ${catF===c?(CAT_CLR[c]||"#1D9E75"):"#e0e0de"}`,background:catF===c?((CAT_CLR[c]||"#1D9E75")+"18"):"transparent",color:catF===c?(CAT_CLR[c]||"#1D9E75"):"#888",fontWeight:catF===c?600:400}}>
-                {c}
-              </button>
-            ))}
-          </div>
-          <div style={{fontSize:11,color:"#aaa",marginBottom:8}}>{sortedR.length} 筆 · 合計 {krwFmt(filtR.reduce((s,r)=>s+(Number(r.amount)||0),0))}</div>
-          {sortedR.map(r=><ReceiptCard key={r.id} r={r} rate={rate} onEdit={handleEdit} onDel={handleDel} full/>)}
-          {sortedR.length===0&&<div style={{textAlign:"center",color:"#ccc",padding:"40px 0",fontSize:13}}>無紀錄</div>}
-        </div>}
-
-        {/* ══ CHARTS ══ */}
-        {tab==="chart"&&<div className="fade">
-          {/* pie - category */}
-          <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
-            <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>消費類別</div>
-            {catData.length>0?(
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie data={catData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({name,percent})=>`${name} ${Math.round(percent*100)}%`} labelLine={false} fontSize={10}>
-                    {catData.map(e=><Cell key={e.name} fill={CAT_CLR[e.name]||"#888"}/>)}
-                  </Pie>
-                  <Tooltip formatter={v=>krwFmt(v)}/>
-                </PieChart>
-              </ResponsiveContainer>
-            ):<Empty/>}
-          </div>
-
-          {/* pie - payment */}
-          <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
-            <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>付款方式</div>
-            {payData.length>0?(
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={payData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({name,percent})=>`${name} ${Math.round(percent*100)}%`} labelLine={false} fontSize={10}>
-                    {payData.map(e=><Cell key={e.name} fill={PAY_CLR[e.name]||"#888"}/>)}
-                  </Pie>
-                  <Tooltip formatter={v=>krwFmt(v)}/>
-                </PieChart>
-              </ResponsiveContainer>
-            ):<Empty/>}
-          </div>
-
-          {/* bar by date */}
-          {(()=>{
-            const dates=[...new Set(baseR.map(r=>r.date))].sort();
-            const barData=dates.map(d=>({date:d.slice(5),total:baseR.filter(r=>r.date===d).reduce((s,r)=>s+(Number(r.amount)||0),0)}));
-            return barData.length>0&&(
-              <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
-                <div style={{fontSize:13,fontWeight:600,marginBottom:10}}>每日花費</div>
-                <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={barData} barSize={28}>
-                    <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false}/>
-                    <YAxis hide/>
-                    <Tooltip formatter={v=>krwFmt(v)}/>
-                    <Bar dataKey="total" fill="#1D9E75" radius={[4,4,0,0]}/>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            );
-          })()}
-
-          {/* category breakdown */}
-          <div style={{background:"#fff",border:"0.5px solid #e8e8e6",borderRadius:14,padding:"14px",marginTop:10}}>
-            <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>類別明細</div>
-            {catData.length===0&&<Empty/>}
-            {CATEGORIES.map(c=>{
-              const val=baseR.filter(r=>r.category===c).reduce((s,r)=>s+(Number(r.amount)||0),0);
-              if(!val)return null;
-              const pct=tripTotal>0?Math.round(val/tripTotal*100):0;
-              return(
-                <div key={c} style={{marginBottom:10}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}>
-                    <span style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{width:8,height:8,borderRadius:2,background:CAT_CLR[c],display:"inline-block"}}></span>{c}
-                    </span>
-                    <span style={{color:"#aaa"}}>{krwFmt(val)}{rate?` · ${twdFmt(val,rate)}`:""} ({pct}%)</span>
-                  </div>
-                  <div style={{height:5,borderRadius:3,background:CAT_CLR[c]+"25"}}>
-                    <div style={{width:`${pct}%`,height:"100%",background:CAT_CLR[c],borderRadius:3}}></div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>}
-      </div>
-
-      {/* ── FAB ── */}
-      <button onClick={handleNew} style={{position:"fixed",bottom:28,right:20,width:54,height:54,borderRadius:"50%",background:"#1D9E75",color:"#fff",border:"none",fontSize:26,display:"flex",alignItems:"center",justifyContent:"center",zIndex:150,boxShadow:"0 4px 20px rgba(29,158,117,0.4)",transition:"transform .1s"}}
-        onMouseDown={e=>e.currentTarget.style.transform="scale(0.93)"}
-        onMouseUp={e=>e.currentTarget.style.transform="scale(1)"}
-      >+</button>
-
-      {/* ══ FORM MODAL ══ */}
-      {showForm&&form&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={e=>{if(e.target===e.currentTarget)setShowForm(false)}}>
-          <div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:680,maxHeight:"94vh",overflowY:"auto",padding:"20px 18px 60px"}} className="fade">
-
-            <div style={{width:36,height:4,borderRadius:2,background:"#e0e0de",margin:"0 auto 16px"}}></div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <span style={{fontSize:16,fontWeight:700}}>{editId?"編輯收據":"新增收據"}</span>
-              <button onClick={()=>setShowForm(false)} style={{width:28,height:28,borderRadius:"50%",border:"none",background:"#f0f0ee",color:"#888",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
-            </div>
-
-            {/* image scan */}
-            <div onClick={()=>fileRef.current?.click()} style={{border:"1.5px dashed #d0d0ce",borderRadius:12,padding:"16px",textAlign:"center",marginBottom:14,cursor:"pointer",background:"#fafaf8",transition:"background .15s"}}
-              onMouseEnter={e=>e.currentTarget.style.background="#f0f8f5"}
-              onMouseLeave={e=>e.currentTarget.style.background="#fafaf8"}
-            >
-              <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={handleImg}/>
-              {scanLoad?(
-                <div style={{color:"#1D9E75",fontSize:13,fontWeight:500}}>🔍 AI 辨識中…</div>
-              ):form.img?(
-                <div>
-                  <img src={`data:image/jpeg;base64,${form.img}`} alt="" style={{maxHeight:100,borderRadius:8,marginBottom:6}}/>
-                  <div style={{fontSize:11,color:scanMsg.includes("✓")?"#1D9E75":"#E24B4A",fontWeight:500}}>{scanMsg||"點擊重新拍照"}</div>
-                </div>
-              ):(
-                <div>
-                  <div style={{fontSize:20,marginBottom:4}}>📷</div>
-                  <div style={{fontSize:12,color:"#888",fontWeight:500}}>拍收據照片</div>
-                  <div style={{fontSize:10,color:"#1D9E75",marginTop:3}}>Claude AI 自動辨識韓文 → 繁體中文</div>
-                </div>
-              )}
-            </div>
-
-            {/* fields */}
-            {[
-              ["使用者","select","user",USERS],
-              ["日期","date","date"],
-              ["店名","text","store","例：弘大 Olive Young"],
-              ["品項","text","items","例：精華液、面膜"],
-              ["金額（韓元 KRW）","number","amount","例：35000"],
-            ].map(([lbl,type,key,optOrPh])=>(
-              <div key={key}>
-                <label style={{fontSize:11,color:"#aaa",marginBottom:4,display:"block"}}>{lbl}</label>
-                {type==="select"?(
-                  <select value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))} style={{width:"100%",padding:"9px 10px",borderRadius:9,border:"0.5px solid #d0d0ce",background:"#fff",color:"#1a1a1a",fontSize:13,marginBottom:10}}>
-                    {optOrPh.map(o=><option key={o}>{o}</option>)}
-                  </select>
-                ):(
-                  <input type={type} value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))} placeholder={optOrPh} style={{width:"100%",padding:"9px 10px",borderRadius:9,border:"0.5px solid #d0d0ce",background:"#fff",color:"#1a1a1a",fontSize:13,marginBottom:10}}/>
-                )}
-                {key==="amount"&&rate&&form.amount&&<div style={{fontSize:11,color:"#1D9E75",marginTop:-8,marginBottom:10}}>≈ {twdFmt(form.amount,rate)}</div>}
-              </div>
-            ))}
-
-            <label style={{fontSize:11,color:"#aaa",marginBottom:4,display:"block"}}>類別</label>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-              {CATEGORIES.map(c=>(
-                <button key={c} onClick={()=>setForm(f=>({...f,category:c}))} style={{padding:"5px 10px",borderRadius:20,fontSize:11,border:`0.5px solid ${form.category===c?(CAT_CLR[c]||"#1D9E75"):"#e0e0de"}`,background:form.category===c?((CAT_CLR[c]||"#1D9E75")+"18"):"transparent",color:form.category===c?(CAT_CLR[c]||"#1D9E75"):"#888",fontWeight:form.category===c?600:400}}>
-                  {c}
-                </button>
-              ))}
-            </div>
-
-            <label style={{fontSize:11,color:"#aaa",marginBottom:4,display:"block"}}>付款方式</label>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-              {PAY.map(p=>(
-                <button key={p} onClick={()=>setForm(f=>({...f,payMethod:p}))} style={{padding:"5px 10px",borderRadius:20,fontSize:11,border:`0.5px solid ${form.payMethod===p?"#534AB7":"#e0e0de"}`,background:form.payMethod===p?"#534AB720":"transparent",color:form.payMethod===p?"#534AB7":"#888",fontWeight:form.payMethod===p?600:400}}>
-                  {p}
-                </button>
-              ))}
-            </div>
-
-            <label style={{fontSize:11,color:"#aaa",marginBottom:4,display:"block"}}>備註（選填）</label>
-            <input value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))} placeholder="例：和珞熙一起買" style={{width:"100%",padding:"9px 10px",borderRadius:9,border:"0.5px solid #d0d0ce",background:"#fff",color:"#1a1a1a",fontSize:13,marginBottom:16}}/>
-
-            <button onClick={handleSave} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"#1D9E75",color:"#fff",fontSize:15,fontWeight:700,letterSpacing:-0.2}}>
-              {editId?"儲存修改":"新增收據"}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+/* ═══════ NAV ═══════ */
+function switchMain(name){
+  ["trip","expense","spots","info"].forEach(t=>{
+    $("tab-"+t).classList.toggle("hidden",t!==name);
+    $("nav-"+t).classList.toggle("active",t===name);
+  });
+  $("fab").classList.toggle("hidden",name!=="expense");
+  if(name==="trip")renderTrip();
+  else if(name==="spots")renderSpots();
+  else if(name==="info")renderInfo();
+  else if(name==="expense")renderExpense();
+}
+function switchSub(name){
+  ["dash","list","chart"].forEach(t=>{
+    $("sub-"+t).classList.toggle("hidden",t!==name);
+    const btn=$("sub-"+t+"-btn");
+    if(btn){btn.classList.toggle("active",t===name);}
+  });
 }
 
-function Empty(){return <div style={{textAlign:"center",color:"#ccc",padding:"28px 0",fontSize:13}}>尚無資料</div>;}
+/* ═══════ ACTIONS ═══════ */
+function setActiveUser(u){activeUser=u;viewUser=u;renderExpense();}
+function setViewUser(u){viewUser=u;renderExpense();}
+function setCatFilter(c){catFilter=c;renderList();}
+function delR(id,key){
+  if(!confirm("確定刪除？"))return;
+  STATE.receipts[key]=(STATE.receipts[key]||[]).filter(r=>String(r.id)!==String(id));
+  saveToCloud();
+}
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+/* ═══════ FORM ═══════ */
+function openForm(id){
+  editId=id;$("form-title").textContent=id?"編輯收據":"新增收據";$("save-btn-label").textContent=id?"儲存修改":"新增收據";
+  const r=id?allR().find(x=>String(x.id)===String(id)):null;
+  $("f-user").innerHTML=USERS.map(u=>`<option ${r&&r.user===u?"selected":""}>${u}</option>`).join("");
+  $("f-date").value=r?r.date:today();$("f-store").value=r?r.store:"";$("f-items").value=r?r.items:"";$("f-amount").value=r?r.amount:"";$("f-note").value=r?r.note:"";
+  formCat=r?r.category:"購物";formPay=r?r.payMethod:"現金";
+  renderFTags();updateTWD();
+  $("img-content").innerHTML=`<div style="font-size:24px;margin-bottom:4px">📷</div><div style="font-size:12px;color:#888;font-weight:500">拍收據照片</div><div style="font-size:10px;color:#1D9E75;margin-top:3px">Claude AI 自動辨識韓文 → 繁體中文</div>`;
+  $("file-inp").value="";$("form-modal").classList.remove("hidden");document.body.style.overflow="hidden";
+}
+function closeForm(){$("form-modal").classList.add("hidden");document.body.style.overflow="";editId=null;}
+function renderFTags(){
+  $("f-cats").innerHTML=CATS.map(c=>{const a=formCat===c,clr=CAT_CLR[c];return`<button class="tag ${a?"active":""}" onclick="setFC('${c}')" style="${a&&clr?`border-color:${clr};background:${clr}18;color:${clr}`:""}">${c}</button>`;}).join("");
+  $("f-pays").innerHTML=PAYS.map(p=>{const a=formPay===p;return`<button class="tag ${a?"active":""}" onclick="setFP('${p}')" style="${a?"border-color:#534AB7;background:#534AB718;color:#534AB7":""}">${p}</button>`;}).join("");
+}
+function setFC(c){formCat=c;renderFTags();}
+function setFP(p){formPay=p;renderFTags();}
+function updateTWD(){const v=$("f-amount").value,el=$("f-twd");if(rate&&v){el.style.display="block";el.textContent="≈ "+twd(v);}else el.style.display="none";}
+async function handleImg(inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    const b64=ev.target.result.split(",")[1];
+    $("img-content").innerHTML=`<div style="font-size:13px;color:#1D9E75;font-weight:500">🔍 AI 辨識中…</div>`;
+    try{
+      const p=await scanReceipt(b64);
+      if(p.store)$("f-store").value=p.store;if(p.items)$("f-items").value=p.items;
+      if(p.amount)$("f-amount").value=p.amount;if(p.category&&CATS.includes(p.category))formCat=p.category;
+      if(p.note)$("f-note").value=p.note;
+      renderFTags();updateTWD();
+      $("img-content").innerHTML=`<div style="font-size:12px;color:#1D9E75;font-weight:600">✓ 辨識完成！</div><div style="font-size:10px;color:#aaa;margin-top:4px">點此重新拍照</div>`;
+    }catch{$("img-content").innerHTML=`<div style="font-size:12px;color:#E24B4A">辨識失敗，請手動填寫</div>`;}
+  };
+  reader.readAsDataURL(file);
+}
+function saveForm(){
+  const amount=$("f-amount").value;if(!amount){alert("請填寫金額");return;}
+  const user=$("f-user").value,key=UKEY[user]||"pj";
+  const receipt={id:editId||uid(),user,date:$("f-date").value,store:$("f-store").value,items:$("f-items").value,amount,category:formCat,payMethod:formPay,note:$("f-note").value};
+  if(editId){let f=false;["pj","lx","co"].forEach(k=>{const i=(STATE.receipts[k]||[]).findIndex(r=>String(r.id)===String(editId));if(i>=0){STATE.receipts[k][i]=receipt;f=true;}});if(!f)STATE.receipts[key].unshift(receipt);}
+  else{if(!STATE.receipts[key])STATE.receipts[key]=[];STATE.receipts[key].unshift(receipt);}
+  closeForm();saveToCloud();
+}
+
+/* ═══════ BUDGET ═══════ */
+function openBudgetEdit(){
+  $("bud-inputs").innerHTML=USERS.map(u=>`<label class="lbl">${u} 預算（韓元）</label><input id="bud-${UKEY[u]}" type="number" class="inp" value="${STATE.budgets[UKEY[u]]||BDEF}">`).join("");
+  $("bud-modal").classList.remove("hidden");document.body.style.overflow="hidden";
+}
+function closeBudget(){$("bud-modal").classList.add("hidden");document.body.style.overflow="";}
+function saveBudgets(){
+  USERS.forEach(u=>{const v=Number($("bud-"+UKEY[u]).value);if(v>0)STATE.budgets[UKEY[u]]=v;});
+  closeBudget();saveToCloud();
+}
+
+$("form-modal").addEventListener("click",e=>{if(e.target===$("form-modal"))closeForm();});
+$("bud-modal").addEventListener("click",e=>{if(e.target===$("bud-modal"))closeBudget();});
+
+/* ═══════ BOOT ═══════ */
+async function boot(){
+  renderTrip();
+  await Promise.all([fetchRate(),loadFromCloud()]);
+  renderExpense();
+  setInterval(()=>loadFromCloud(),45000);
+}
+boot();
 </script>
 </body>
 </html>
