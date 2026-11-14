@@ -62,6 +62,15 @@ td.n,th.n{text-align:right;white-space:nowrap}
 .ov td,.ov th{text-align:center;padding:5px 3px;font-size:13px}.ov tr.cur td{background:#f7efd2}.ov tr{cursor:pointer}
 .help{background:#eef4f1;border-radius:10px;padding:10px 12px;font-size:13px;color:#2d4a42;margin-bottom:10px;line-height:1.6}
 .void{opacity:.5;text-decoration:line-through}
+.step{font-size:13px;color:var(--mut);margin:12px 0 6px;font-weight:600}.step b{color:var(--g);font-size:15px}
+.crumbs{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.sizes{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px}
+.sz{background:#fff;border:2px solid var(--g);border-radius:10px;padding:8px 4px;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.sz b{font-size:18px}.sz span{font-size:11px;color:var(--mut)}.sz.out{border-color:var(--line);opacity:.5}
+.grp{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden}.grp>.gh{display:flex;gap:8px;align-items:center;padding:10px;background:#f8faf7;cursor:pointer}
+.grp .li{padding:8px 10px}
+.cartbar{position:fixed;left:10px;right:10px;bottom:10px;z-index:30;background:var(--g);color:#fff;border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer}
+.cartbar b{font-size:18px;margin-left:auto}@media(min-width:760px){.cartbar{display:none}}
 td:first-child{white-space:nowrap}td .b{white-space:nowrap}
 </style>
 </head>
@@ -132,7 +141,7 @@ const Store={
       if(!j.ok)throw new Error(j.error||'讀取失敗');
       TABLES.forEach(t=>DB[t]=(j.data[t]||[]).map(norm));
     }else{
-      const s=lsGet('cl_demo');
+      const s=lsGet('cl_demo_v2');
       if(s){const d=JSON.parse(s);TABLES.forEach(t=>DB[t]=d[t]||[])}else{seed();saveDemo()}
     }
   },
@@ -142,14 +151,16 @@ const Store={
       else{const row={...o.row};if(o.table==='staff'&&!row.pin&&i>=0)row.pin=arr[i].pin;if(i>=0)arr[i]={...arr[i],...row};else arr.push(row)}});
     if(MODE()==='demo'){saveDemo();return true}
     try{
-      const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'batch',auth:SESSION,ops})});
-      const j=await r.json();if(!j.ok)throw new Error(j.error||'未知錯誤');return true;
+      for(let i=0;i<ops.length;i+=300){
+        const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'batch',auth:SESSION,ops:ops.slice(i,i+300)})});
+        const j=await r.json();if(!j.ok)throw new Error(j.error||'未知錯誤');}
+      return true;
     }catch(e){await alertBox('儲存失敗：'+e.message+'\n已重新載入最新資料，請再試一次');await Store.load();render();return false}
   },
   put(t,row){return this.batch([{op:'put',table:t,row}])},
   del(t,id){return this.batch([{op:'del',table:t,id}])}
 };
-function saveDemo(){lsSet('cl_demo',JSON.stringify(DB))}
+function saveDemo(){lsSet('cl_demo_v2',JSON.stringify(DB))}
 
 /* ===== 核心邏輯：庫存＝進貨＋調入−調出±盤點−銷售 ===== */
 function stockMap(){const m={};const add=(p,v,q)=>{if(!p||!v)return;m[p]=m[p]||{};m[p][v]=(m[p][v]||0)+(+q||0)};
@@ -198,7 +209,7 @@ function render(){
     <div class="who">${esc(u.name)}・${ROLES[u.role]||''}${u.venueId?'・'+esc(venueName(u.venueId)):''}<br><button onclick="refresh()">🔄 更新</button><button onclick="logout()">登出</button></div></header>
     <nav>${tabs.map(t=>`<button class="${S.tab===t[0]?'on':''}" onclick="S.tab='${t[0]}';render()">${t[1]}</button>`).join('')}</nav></div>
     <main>${MODE()==='demo'?`<div class="banner">🧪 目前是<b>試用模式</b>：資料只存在這台裝置，可以放心亂點。正式上線後四館會共用同一份資料。</div>`:''}${VIEWS[S.tab]()}</main>`;
-  if(S.tab==='sell')renderGrid();
+  if(S.tab==='sell'){renderGrid();refreshCart()}
   if(S.tab==='recon')act('venues').forEach(v=>rcCalc(v.id));
 }
 async function refresh(){try{await Store.load();render();toast('已更新到最新資料')}catch(e){toast('更新失敗：'+e.message)}}
@@ -235,22 +246,60 @@ function vSell(){
   if(!can('pickVenue')||!S.seller)S.seller=me().id;
   const venueSel=can('pickVenue')?`<select onchange="S.sellVenue=this.value;CART=[];render()">${vs.map(v=>opt(v.id,v.name,S.sellVenue)).join('')}</select>`:`<b>${esc(venueName(S.sellVenue))}</b>`;
   const sellerSel=can('pickVenue')?`<select onchange="S.seller=this.value">${act('staff').map(s=>opt(s.id,s.name,S.seller)).join('')}</select>`:`<b>${esc(me().name)}</b>`;
-  const cats=act('categories');
   return `<div class="two"><div class="card"><div class="row"><span class="mut">球館</span>${venueSel}<span class="mut">銷售人員</span>${sellerSel}</div>
-    <input id="q" placeholder="🔍 搜尋商品名稱或編號" value="${esc(S.q||'')}" oninput="S.q=this.value;renderGrid()" style="margin-top:10px">
-    <div class="chips"><span class="chip ${!S.cat?'on':''}" onclick="S.cat='';render()">全部</span>${cats.map(c=>`<span class="chip ${S.cat===c.id?'on':''}" onclick="S.cat='${c.id}';render()">${esc(c.name)}</span>`).join('')}</div>
-    <div id="pgrid" class="grid"></div></div>
-    <div class="card" id="cartbox">${vCart()}</div></div>`}
-function renderGrid(){const el=$('#pgrid');if(!el)return;const st=stockMap();const q=(S.q||'').trim().toLowerCase();
-  const ps=act('products').filter(p=>(!S.cat||p.categoryId===S.cat)&&(!q||(p.name+' '+(p.sku||'')).toLowerCase().includes(q)));
-  el.innerHTML=ps.map(p=>{const n=stk(st,p.id,S.sellVenue);return `<button class="pbtn ${n<=0?'out':''}" onclick="addCart('${p.id}')"><b>${esc(p.name)}</b><span class="pr">${money(p.price)}</span><br><span class="st ${n<(+p.safety||0)?'low':''}">本館庫存 ${n}</span></button>`}).join('')||'<div class="mut">沒有符合的商品</div>'}
-function addCart(pid){const p=byId('products',pid);const c=CART.find(x=>x.productId===pid);if(c)c.qty++;else CART.push({productId:pid,price:+p.price,qty:1});refreshCart();toast('＋ '+p.name)}
-function refreshCart(){const b=$('#cartbox');if(b)b.innerHTML=vCart()}
+    <input id="q" placeholder="🔍 打字搜尋，或用掃碼槍掃條碼" value="${esc(S.q||'')}" oninput="S.q=this.value;renderGrid()" onkeydown="if(event.key==='Enter'){event.preventDefault();scanEnter()}" style="margin-top:10px" autocomplete="off">
+    <div id="pgrid"></div></div>
+    <div class="card" id="cartbox">${vCart()}</div></div><div id="cartbar"></div><div style="height:70px"></div>`}
+/* 一層一層點：分類 → 品牌 → 款式 → 顏色 → 尺寸 */
+function pick(k,v){const L=['cat','brand','model','color'];L.slice(L.indexOf(k)).forEach(x=>S['p_'+x]='');if(v!==undefined)S['p_'+k]=v;renderGrid()}
+function hotList(vid){const since=dstr(new Date(Date.now()-30*864e5));const c={};
+  DB.sales.forEach(s=>{if(s.status==='void'||s.venueId!==vid||s.date<since)return;(s.items||[]).forEach(i=>c[i.productId]=(c[i.productId]||0)+(+i.qty||0))});
+  return Object.entries(c).sort((a,b)=>b[1]-a[1]).map(x=>byId('products',x[0])).filter(p=>p&&p.active!==false).slice(0,8)}
+function renderGrid(){const el=$('#pgrid');if(!el)return;const st=stockMap();const vid=S.sellVenue;const n=p=>stk(st,p.id,vid);const sum=l=>l.reduce((a,p)=>a+n(p),0);
+  const all=act('products');const q=(S.q||'').trim().toLowerCase();
+  const card=(label,sub,click,dim)=>`<button class="pbtn ${dim?'out':''}" onclick="${click}"><b>${esc(label)}</b>${sub}</button>`;
+  const pcard=p=>card(pLabel(p),`<span class="pr">${money(p.price)}</span><br><span class="st">本館 ${n(p)}</span>`,`addCart('${p.id}')`,n(p)<=0);
+  const step=t=>`<div class="step">${t}</div>`,grid=a=>`<div class="grid">${a.join('')}</div>`;
+  if(q){const res=all.filter(p=>(pLabel(p)+' '+(p.sku||'')+' '+(p.barcode||'')+' '+catName(p.categoryId)).toLowerCase().includes(q)).slice(0,60);
+    el.innerHTML=step(`搜尋「${esc(S.q)}」找到 ${res.length}${res.length===60?'+':''} 項`)+(res.length?grid(res.map(pcard)):'<div class="mut">找不到，換個關鍵字試試</div>');return}
+  let list=all,html='';
+  const cr=[`<span class="chip ${!S.p_cat?'on':''}" onclick="pick('cat')">全部分類</span>`];
+  if(!S.p_cat){
+    const hot=hotList(vid);
+    html=step('① 選分類')+grid(act('categories').map(c=>{const l=all.filter(p=>p.categoryId===c.id);return card(c.name,`<span class="st">${uniq(l.map(p=>bOf(p)+mOf(p))).length} 款</span>`,`pick('cat','${c.id}')`)}))
+      +(hot.length?step('🔥 本館最近熱銷，直接點')+grid(hot.map(pcard)):'');
+  }else{
+    list=list.filter(p=>p.categoryId===S.p_cat);cr.push(`<span class="chip" onclick="pick('brand')">${esc(catName(S.p_cat))}</span>`);
+    const brands=uniq(list.map(bOf)).sort();
+    if(!S.p_brand&&brands.length===1)S.p_brand=brands[0];
+    if(!S.p_brand){html=step('② 選品牌')+grid(brands.map(b=>{const l=list.filter(p=>bOf(p)===b);return card(b,`<span class="st">${uniq(l.map(mOf)).length} 款・本館 ${sum(l)} 件</span>`,`pick('brand',${jsq(b)})`)}))}
+    else{
+      list=list.filter(p=>bOf(p)===S.p_brand);if(brands.length>1)cr.push(`<span class="chip" onclick="pick('model')">${esc(S.p_brand)}</span>`);
+      const models=uniq(list.map(mOf)).sort();
+      if(!S.p_model){html=step('③ 選款式')+grid(models.map(m=>{const l=list.filter(p=>mOf(p)===m);const pr=l.map(p=>+p.price);const lo=Math.min(...pr),hi=Math.max(...pr);const s=sum(l);
+        return card(m,`<span class="pr">${lo===hi?money(lo):money(lo)+'~'+money(hi)}</span><br><span class="st">${l.length>1?l.length+' 種規格・':''}本館 ${s}</span>`,l.length===1?`addCart('${l[0].id}')`:`pick('model',${jsq(m)})`,s<=0)}))}
+      else{
+        list=list.filter(p=>mOf(p)===S.p_model);cr.push(`<span class="chip" onclick="pick('color')">${esc(S.p_model)}</span>`);
+        const colors=uniq(list.map(cOf));
+        if(!S.p_color&&colors.length===1)S.p_color=colors[0];
+        if(!S.p_color){html=step('④ 選顏色')+grid(colors.map(c=>{const l=list.filter(p=>cOf(p)===c);const s=sum(l);return card(c,`<span class="st">本館 ${s} 件</span>`,`pick('color',${jsq(c)})`,s<=0)}))}
+        else{
+          if(colors.length>1)cr.push(`<span class="chip on">${esc(S.p_color)}</span>`);
+          list=list.filter(p=>cOf(p)===S.p_color).sort((a,b)=>sizeCmp(a.size,b.size));const base=+list[0].price;
+          html=step(`⑤ 選尺寸　<b>${money(base)}</b>　（點一下加入，可以連點）`)+`<div class="sizes">${list.map(p=>`<button class="sz ${n(p)<=0?'out':''}" onclick="addCart('${p.id}')"><b>${esc(p.size||'單一')}</b><span>${n(p)<=0?'缺貨':'剩 '+n(p)}</span>${+p.price!==base?`<span>${money(p.price)}</span>`:''}</button>`).join('')}</div><div class="mut" style="margin-top:6px">灰色＝本館沒貨，可以到「📦 庫存」搜尋看哪一館有。</div>`}
+      }}}
+  el.innerHTML=`<div class="crumbs">${cr.join('<span class="mut">›</span>')}</div>`+html}
+function scanEnter(){const q=(S.q||'').trim().toLowerCase();if(!q)return;const all=act('products');
+  let p=all.find(x=>String(x.barcode||'').toLowerCase()===q||String(x.sku||'').toLowerCase()===q);
+  if(!p){const r=all.filter(x=>(pLabel(x)+' '+(x.sku||'')+' '+(x.barcode||'')).toLowerCase().includes(q));if(r.length===1)p=r[0]}
+  if(!p)return toast('找不到這個條碼／編號');addCart(p.id);S.q='';const i=$('#q');if(i){i.value='';i.focus()}renderGrid()}
+function addCart(pid){const p=byId('products',pid);const c=CART.find(x=>x.productId===pid);if(c)c.qty++;else CART.push({productId:pid,price:+p.price,qty:1});refreshCart();toast('＋ '+pLabel(p))}
+function refreshCart(){const b=$('#cartbox');if(b)b.innerHTML=vCart();const bar=$('#cartbar');if(bar){const n=CART.reduce((a,c)=>a+c.qty,0);bar.innerHTML=n?`<div class="cartbar" onclick="$('#cartbox').scrollIntoView({behavior:'smooth'})">🛒 已選 ${n} 件　去結帳 ↓<b>${money(CART.reduce((a,c)=>a+c.price*c.qty,0))}</b></div>`:''}}
 function cq(i,d){CART[i].qty+=d;if(CART[i].qty<=0)CART.splice(i,1);refreshCart()}
 function vCart(){
   const pays=act('payments');const sys=sysSet();const total=CART.reduce((a,c)=>a+c.price*c.qty,0);
   if(S.pay&&!byId('payments',S.pay))S.pay='';
-  return `<h3>🛒 這一筆銷售</h3>${CART.length?CART.map((c,i)=>{const p=byId('products',c.productId);return `<div class="cart-line"><div class="grow">${esc(p?.name)}<div class="mut">${sys.allowPriceEdit?`單價 <input type="number" value="${c.price}" style="width:86px;padding:4px" onchange="CART[${i}].price=Math.max(0,+this.value||0);refreshCart()">`:money(c.price)}</div></div><div class="qty"><button onclick="cq(${i},-1)">−</button><b>${c.qty}</b><button onclick="cq(${i},1)">＋</button></div><div style="width:72px;text-align:right">${money(c.price*c.qty)}</div></div>`}).join(''):'<div class="mut">點商品加入這筆銷售</div>'}
+  return `<h3>🛒 這一筆銷售</h3>${CART.length?CART.map((c,i)=>{const p=byId('products',c.productId);return `<div class="cart-line"><div class="grow">${esc(pLabel(p))}<div class="mut">${sys.allowPriceEdit?`單價 <input type="number" value="${c.price}" style="width:86px;padding:4px" onchange="CART[${i}].price=Math.max(0,+this.value||0);refreshCart()">`:money(c.price)}</div></div><div class="qty"><button onclick="cq(${i},-1)">−</button><b>${c.qty}</b><button onclick="cq(${i},1)">＋</button></div><div style="width:72px;text-align:right">${money(c.price*c.qty)}</div></div>`}).join(''):'<div class="mut">點商品加入這筆銷售</div>'}
     <label class="f">付款方式</label><div class="chips">${pays.map(p=>`<span class="chip ${S.pay===p.id?'on':''}" onclick="S.pay='${p.id}';refreshCart()">${esc(p.name)}</span>`).join('')}</div>
     <label class="f">備註（選填）</label><input id="snote" value="${esc(S.note||'')}" oninput="S.note=this.value" placeholder="例如：會員折扣、球隊團購">
     <div class="row" style="margin:12px 0"><span class="mut">合計</span><span class="total grow" style="text-align:right">${money(total)}</span></div>
@@ -258,10 +307,10 @@ function vCart(){
 async function submitSale(){
   if(!CART.length)return;if(!S.pay)return toast('請選付款方式');
   const st=stockMap();const short=CART.filter(c=>stk(st,c.productId,S.sellVenue)<c.qty);
-  if(short.length){const names=short.map(c=>byId('products',c.productId).name).join('、');
+  if(short.length){const names=short.map(c=>pLabel(byId('products',c.productId))).join('、');
     if(!sysSet().allowNegative)return alertBox(`本館庫存不夠：${names}\n請主管先「進貨」或「調撥」，或請管理員在設定開啟「允許負庫存」。`);
     if(!await confirmBox(`${names} 系統庫存不夠，還是要送出嗎？（庫存會變負數）`))return}
-  const items=CART.map(c=>{const p=byId('products',c.productId);const sub=c.price*c.qty;return{productId:p.id,name:p.name,price:c.price,qty:c.qty,subtotal:sub,bonus:calcLineBonus(p,sub,c.qty)}});
+  const items=CART.map(c=>{const p=byId('products',c.productId);const sub=c.price*c.qty;return{productId:p.id,name:pLabel(p),price:c.price,qty:c.qty,subtotal:sub,bonus:calcLineBonus(p,sub,c.qty)}});
   const total=items.reduce((a,i)=>a+i.subtotal,0);
   const sale={id:uid('S'),date:today(),time:nowStr(),venueId:S.sellVenue,staffId:can('pickVenue')?S.seller:me().id,items,total,paymentId:S.pay,note:S.note||'',status:'ok',createdBy:me().id};
   const b=$('#sbtn');if(b){b.disabled=true;b.textContent='送出中…'}
@@ -269,40 +318,55 @@ async function submitSale(){
 
 /* --- 庫存 --- */
 function vStock(){
-  const vs=act('venues');const st=stockMap();const cats=act('categories');
-  const ps=act('products').filter(p=>!S.stCat||p.categoryId===S.stCat);
-  let low=0;
-  const rows=ps.map(p=>{let tot=0;const cells=vs.map(v=>{const n=stk(st,p.id,v.id);tot+=n;const isLow=n<(+p.safety||0);if(isLow)low++;return `<td class="n ${isLow?'low':''}">${n}</td>`}).join('');
-    return `<tr><td>${esc(p.name)}<div class="mut">${esc(p.sku||'')} 安全量 ${+p.safety||0}</div></td>${cells}<td class="n"><b>${tot}</b></td></tr>`}).join('');
+  const vs=act('venues');const st=stockMap();const cats=act('categories');const q=(S.stQ||'').trim().toLowerCase();
+  let ps=act('products').filter(p=>(!S.stCat||p.categoryId===S.stCat)&&(!q||(pLabel(p)+' '+(p.sku||'')+' '+(p.barcode||'')).toLowerCase().includes(q)));
+  let low=0;const lowOf=p=>vs.some(v=>stk(st,p.id,v.id)<(+p.safety||0));
+  act('products').forEach(p=>vs.forEach(v=>{if(stk(st,p.id,v.id)<(+p.safety||0))low++}));
+  if(S.stLow)ps=ps.filter(lowOf);
+  ps.sort((a,b)=>catName(a.categoryId).localeCompare(catName(b.categoryId))||bOf(a).localeCompare(bOf(b))||mOf(a).localeCompare(mOf(b))||cOf(a).localeCompare(cOf(b))||sizeCmp(a.size,b.size));
+  const shown=ps.slice(0,200);
+  const rows=shown.map(p=>{let tot=0;const cells=vs.map(v=>{const n=stk(st,p.id,v.id);tot+=n;return `<td class="n ${n<(+p.safety||0)?'low':''}">${n}</td>`}).join('');
+    return `<tr><td>${esc(pLabel(p))}<div class="mut">${esc(p.sku||'')} 安全量 ${+p.safety||0}</div></td>${cells}<td class="n"><b>${tot}</b></td></tr>`}).join('');
   const ops=can('stockOps')?`<div class="row" style="margin-bottom:10px"><button class="b" onclick="moveForm('in')">📥 進貨</button><button class="b" onclick="moveForm('transfer')">🔁 館間調撥</button><button class="b ghost" onclick="moveForm('adjust')">📝 盤點／報廢</button></div>`:'';
   const mv=[...DB.moves].sort((a,b)=>String(b.time).localeCompare(String(a.time))).slice(0,40);
   const TL={in:'📥 進貨',transfer:'🔁 調撥',adjust:'📝 調整'};
-  return `${ops}<div class="card"><div class="row"><h2 class="grow">各館庫存</h2>${low?`<span class="tag red">${low} 格低於安全量</span>`:'<span class="tag ok">庫存都充足</span>'}</div>
-    <div class="chips"><span class="chip ${!S.stCat?'on':''}" onclick="S.stCat='';render()">全部</span>${cats.map(c=>`<span class="chip ${S.stCat===c.id?'on':''}" onclick="S.stCat='${c.id}';render()">${esc(c.name)}</span>`).join('')}</div>
-    <div class="scroll"><table><tr><th>商品</th>${vs.map(v=>`<th class="n">${esc(v.name)}</th>`).join('')}<th class="n">合計</th></tr>${rows}</table></div>
-    <div class="mut" style="margin-top:6px">紅字＝低於安全庫存，該補貨了。庫存是系統自動算的：進貨＋調入−調出±盤點−已售出。</div></div>
-    <div class="card"><h2>最近庫存異動</h2>${mv.length?mv.map(m=>`<div class="li"><div class="grow">${TL[m.type]||m.type}｜${esc(byId('products',m.productId)?.name||'?')}
+  return `${ops}<div class="card"><div class="row"><h2 class="grow">各館庫存</h2>${low?`<span class="tag red" style="cursor:pointer" onclick="S.stLow=!S.stLow;render()">${low} 格低於安全量${S.stLow?'（顯示中）':'，點我只看這些'}</span>`:'<span class="tag ok">庫存都充足</span>'}</div>
+    <div class="row" style="margin:8px 0"><input id="stq" class="grow" placeholder="🔍 搜尋品名／款式／顏色／尺寸／條碼" value="${esc(S.stQ||'')}" onchange="S.stQ=this.value;render()" onkeydown="if(event.key==='Enter')this.blur()">
+    <select onchange="S.stCat=this.value;render()"><option value="">全部分類</option>${cats.map(c=>opt(c.id,c.name,S.stCat)).join('')}</select></div>
+    <div class="scroll"><table><tr><th>商品</th>${vs.map(v=>`<th class="n">${esc(v.name)}</th>`).join('')}<th class="n">合計</th></tr>${rows||`<tr><td colspan="${vs.length+2}" class="mut">沒有符合的商品</td></tr>`}</table></div>
+    <div class="mut" style="margin-top:6px">${ps.length>200?`共 ${ps.length} 項，先顯示前 200 項，請用搜尋縮小範圍。`:`共 ${ps.length} 項。`}紅字＝低於安全庫存。庫存由系統自動算：進貨＋調入−調出±盤點−已售出。</div></div>
+    <div class="card"><h2>最近庫存異動</h2>${mv.length?mv.map(m=>`<div class="li"><div class="grow">${TL[m.type]||m.type}｜${esc(pLabel(byId('products',m.productId)))}
       <div class="mut">${esc(m.time)}・${m.type==='transfer'?esc(venueName(m.fromVenue))+' → '+esc(venueName(m.toVenue)):esc(venueName(m.toVenue))}・${esc(m.reason||'')}${m.note?'・'+esc(m.note):''}・${esc(staffName(m.by))}</div></div><b>${m.qty>0?'+':''}${m.qty}</b></div>`).join(''):'<div class="mut">還沒有紀錄</div>'}</div>`}
 function moveForm(type){
-  S.mvType=type;const vs=act('venues');
+  S.mvType=type;S.mvVals={};const vs=act('venues');
   const sel=(id,label,def)=>`<label class="f">${label}</label><select id="${id}" onchange="mvRefresh()">${vs.map(v=>opt(v.id,v.name,def)).join('')}</select>`;
-  const T={in:['📥 進貨','商品從廠商進到哪一館。只要填有進貨的商品，其他留空。'],transfer:['🔁 館間調撥','從 A 館拿貨到 B 館，總數不變。'],adjust:['📝 盤點／報廢','直接填「實際點到的數量」，系統自動算差額。沒點的留空＝不變。']}[type];
+  const T={in:['📥 進貨','搜尋或掃條碼找到商品，填進貨數量。可以一次填很多項，最後一起儲存。'],transfer:['🔁 館間調撥','從 A 館拿貨到 B 館，總數不變。'],adjust:['📝 盤點／報廢','填「實際點到的數量」，系統自動算差額。沒填的＝不變。']}[type];
   const head=type==='transfer'?sel('mv-from','從哪一館調出',vs[0]?.id)+sel('mv-to','調到哪一館',vs[1]?.id)
     :sel('mv-to',type==='in'?'進到哪一館':'盤點哪一館',vs[0]?.id)+(type==='adjust'?`<label class="f">原因</label><select id="mv-reason">${['盤點差異','報廢損壞','退回廠商','贈品／公關','其他'].map(x=>opt(x,x)).join('')}</select>`:'');
-  openModal(`<h2>${T[0]}</h2>${head}<p class="mut">${T[1]}</p><div id="mv-list"></div><label class="f">備註（選填）</label><input id="mv-note" placeholder="例如：廠商單號、報廢原因">
+  openModal(`<h2>${T[0]}</h2>${head}<p class="mut">${T[1]}</p>
+    <div class="row"><input id="mv-q" class="grow" placeholder="🔍 搜尋或掃條碼" oninput="mvRefresh()" onkeydown="if(event.key==='Enter'){event.preventDefault();mvScan()}" autocomplete="off"><select id="mv-cat" onchange="mvRefresh()"><option value="">全部分類</option>${act('categories').map(c=>opt(c.id,c.name)).join('')}</select></div>
+    <div id="mv-list" style="margin-top:8px"></div><label class="f">備註（選填）</label><input id="mv-note" placeholder="例如：廠商單號、報廢原因">
     <div class="row" style="margin-top:14px"><button class="b" onclick="saveMoves()">儲存</button><button class="b ghost" onclick="closeModal()">取消</button></div>`);mvRefresh()}
+function mvScan(){const q=$('#mv-q').value.trim().toLowerCase();const p=act('products').find(x=>String(x.barcode||'').toLowerCase()===q||String(x.sku||'').toLowerCase()===q);
+  if(!p)return;const cur=S.mvVals[p.id];S.mvVals[p.id]=S.mvType==='adjust'?String((+cur||0)+1):String((+cur||0)+1);$('#mv-q').value='';mvRefresh();toast('＋1 '+pLabel(p))}
 function mvRefresh(){const type=S.mvType;const st=stockMap();const vid=type==='transfer'?$('#mv-from').value:$('#mv-to').value;
-  $('#mv-list').innerHTML=`<table><tr><th>商品</th><th class="n">${type==='transfer'?'調出館現有':'目前'}</th><th class="n">${type==='adjust'?'實際數量':'數量'}</th></tr>${act('products').map(p=>`<tr><td>${esc(p.name)}</td><td class="n">${stk(st,p.id,vid)}</td><td class="n"><input type="number" inputmode="numeric" min="0" data-pid="${p.id}" style="width:80px;padding:5px" placeholder="${type==='adjust'?'不變':''}"></td></tr>`).join('')}</table>`}
+  const q=($('#mv-q')?.value||'').trim().toLowerCase();const cat=$('#mv-cat')?.value||'';
+  const filled=Object.keys(S.mvVals).filter(k=>S.mvVals[k]!=='').map(k=>byId('products',k)).filter(Boolean);
+  const res=(q||cat)?act('products').filter(p=>!(p.id in S.mvVals&&S.mvVals[p.id]!=='')&&(!cat||p.categoryId===cat)&&(!q||(pLabel(p)+' '+(p.sku||'')+' '+(p.barcode||'')).toLowerCase().includes(q))).sort((a,b)=>mOf(a).localeCompare(mOf(b))||cOf(a).localeCompare(cOf(b))||sizeCmp(a.size,b.size)).slice(0,80):[];
+  const row=p=>`<tr><td>${esc(pLabel(p))}</td><td class="n">${stk(st,p.id,vid)}</td><td class="n"><input type="number" inputmode="numeric" min="0" value="${esc(S.mvVals[p.id]??'')}" oninput="S.mvVals['${p.id}']=this.value" style="width:76px;padding:5px" placeholder="${type==='adjust'?'不變':''}"></td></tr>`;
+  const th=`<tr><th>商品</th><th class="n">${type==='transfer'?'調出館現有':'目前'}</th><th class="n">${type==='adjust'?'實際數量':'數量'}</th></tr>`;
+  $('#mv-list').innerHTML=(filled.length?`<div class="step">已填 ${filled.length} 項</div><table>${th}${filled.map(row).join('')}</table>`:'')
+    +((q||cat)?`<div class="step">搜尋結果${res.length===80?'（前 80 項）':''}</div><table>${th}${res.map(row).join('')||'<tr><td colspan="3" class="mut">找不到</td></tr>'}</table>`:(filled.length?'':'<div class="mut">👆 先搜尋、掃條碼或選分類</div>'))}
 async function saveMoves(){
   const type=S.mvType;const st=stockMap();const to=$('#mv-to').value;const from=$('#mv-from')?.value||'';
   if(type==='transfer'&&from===to)return toast('調出和調入不能是同一館');
   const reason=type==='adjust'?$('#mv-reason').value:(type==='in'?'進貨':'調撥');const note=$('#mv-note').value.trim();
   const ops=[],short=[];
-  $$('#mv-list input[data-pid]').forEach(inp=>{if(inp.value==='')return;const n=Math.round(+inp.value);const pid=inp.dataset.pid;if(!(n>=0))return;let qty;
+  Object.entries(S.mvVals).forEach(([pid,val])=>{if(val===''||val==null)return;const n=Math.round(+val);if(!(n>=0)||!byId('products',pid))return;let qty;
     if(type==='adjust'){qty=n-stk(st,pid,to);if(qty===0)return}else{qty=n;if(qty<=0)return}
-    if(type==='transfer'&&qty>stk(st,pid,from))short.push(byId('products',pid).name);
+    if(type==='transfer'&&qty>stk(st,pid,from))short.push(pLabel(byId('products',pid)));
     ops.push({op:'put',table:'moves',row:{id:uid('M'),date:today(),time:nowStr(),type,productId:pid,fromVenue:type==='transfer'?from:'',toVenue:to,qty,reason,note,by:me().id}})});
-  if(!ops.length)return toast('沒有填任何數量');
+  if(!ops.length)return toast('沒有填任何數量（或盤點數量和系統一樣）');
   if(short.length&&!sysSet().allowNegative)return alertBox('調出館庫存不夠：'+short.join('、'));
   if(await Store.batch(ops)){closeModal();toast(`✅ 已儲存 ${ops.length} 項`);render()}}
 
@@ -389,7 +453,7 @@ const SCHEMA={
   venues:{title:'球館',help:'四間球館的名稱。不再營業的請改「停用」，歷史紀錄會保留。',fields:[{k:'name',l:'球館名稱',t:'text',req:1},{k:'order',l:'排序（數字小的在前）',t:'number'},{k:'active',l:'啟用',t:'bool',def:true}]},
   staff:{title:'人員',help:'每個人一組密碼。身分決定看得到什麼：館員只能登打銷售、看庫存；會計多了對帳；商品部主管可以進貨調撥、作廢、發獎金；管理員可以改所有設定。',fields:[{k:'name',l:'姓名',t:'text',req:1},{k:'venueId',l:'所屬球館',t:'venue'},{k:'role',l:'身分',t:'select',opts:()=>Object.entries(ROLES)},{k:'pin',l:'登入密碼（4~6 碼數字）',t:'pin'},{k:'order',l:'排序',t:'number'},{k:'active',l:'在職',t:'bool',def:true}]},
   categories:{title:'商品分類',help:'分類決定「獎金怎麼算」。例：球拍抽 5%、握把布每條 $5。個別商品也可以在「商品」裡另外設定。',fields:[{k:'name',l:'分類名稱',t:'text',req:1},{k:'bonusType',l:'銷售獎金方式',t:'select',opts:()=>BONUS_TYPES},{k:'bonusValue',l:'獎金數值',t:'number',hint:'抽 % 填 5＝5%；固定金額填 20＝每件 $20'},{k:'order',l:'排序',t:'number'},{k:'active',l:'啟用',t:'bool',def:true}]},
-  products:{title:'商品',help:'四館共用同一份商品清單，各館庫存分開算。安全庫存＝低於這個數字會變紅字提醒補貨。',fields:[{k:'name',l:'商品名稱',t:'text',req:1},{k:'sku',l:'商品編號（選填）',t:'text'},{k:'categoryId',l:'分類',t:'cat',req:1},{k:'price',l:'售價',t:'number',req:1},{k:'cost',l:'進價（選填，算毛利用）',t:'number'},{k:'safety',l:'安全庫存',t:'number'},{k:'bonusType',l:'獎金方式',t:'select',opts:()=>[['inherit','跟著分類規則'],...BONUS_TYPES]},{k:'bonusValue',l:'獎金數值（跟分類時不用填）',t:'number'},{k:'order',l:'排序',t:'number'},{k:'active',l:'上架中',t:'bool',def:true}]},
+  products:{title:'商品',help:'',fields:[{k:'categoryId',l:'分類',t:'cat',req:1},{k:'brand',l:'品牌',t:'text'},{k:'model',l:'款式名稱',t:'text',req:1},{k:'color',l:'顏色',t:'text'},{k:'size',l:'尺寸',t:'text'},{k:'name',l:'顯示名稱（留空＝自動用 品牌＋款式＋顏色＋尺寸）',t:'text'},{k:'barcode',l:'條碼（選填，掃碼槍用）',t:'text'},{k:'sku',l:'商品編號（選填）',t:'text'},{k:'price',l:'售價',t:'number',req:1},{k:'cost',l:'進價（選填）',t:'number'},{k:'safety',l:'安全庫存',t:'number'},{k:'bonusType',l:'獎金方式',t:'select',opts:()=>[['inherit','跟著分類規則'],...BONUS_TYPES]},{k:'bonusValue',l:'獎金數值（跟分類時不用填）',t:'number'},{k:'active',l:'上架中',t:'bool',def:true}]},
   payments:{title:'付款方式',help:'會計對帳時，會按這些付款方式分開核對。',fields:[{k:'name',l:'名稱',t:'text',req:1},{k:'order',l:'排序',t:'number'},{k:'active',l:'啟用',t:'bool',def:true}]},
   targets:{title:'各館業績目標',help:'每館每月一個目標。達標後的團隊獎金可以是固定金額，或「超過目標的部分」抽 %。',fields:[{k:'venueId',l:'球館',t:'venue',req:1},{k:'target',l:'每月業績目標（元）',t:'number',req:1},{k:'rewardType',l:'達標獎勵方式',t:'select',opts:()=>[['fixed','達標發固定獎金'],['pct','超過目標的部分抽 %']]},{k:'rewardValue',l:'獎勵數值',t:'number',hint:'固定填 2000＝$2000；抽 % 填 10＝超過部分的 10%'}]}
 };
@@ -401,9 +465,90 @@ const SUM={
   payments:r=>esc(r.name),
   targets:r=>`${esc(venueName(r.venueId))}：${money(r.target)} <span class="mut">→ ${r.rewardType==='pct'?'超過部分抽 '+r.rewardValue+'%':'達標 '+money(r.rewardValue)}</span>`
 };
+/* --- 商品管理（款式 × 顏色 × 尺寸） --- */
+const gk=p=>p.categoryId+'|'+bOf(p)+'|'+mOf(p);
+function vProducts(){
+  const q=(S.spQ||'').trim().toLowerCase();
+  const list=DB.products.filter(p=>(!S.spCat||p.categoryId===S.spCat)&&(!q||(pLabel(p)+' '+(p.sku||'')+' '+(p.barcode||'')).toLowerCase().includes(q)));
+  const keys=uniq(list.map(gk)).sort((a,b)=>a.localeCompare(b));S._spG=keys;
+  const shown=keys.slice(0,80);
+  return `<div class="card"><div class="row"><h2 class="grow">商品（共 ${DB.products.length} 個規格）</h2></div>
+    <div class="help">商品用「<b>分類 › 品牌 › 款式 › 顏色 › 尺寸</b>」來整理。館員開單時就照這個順序點，幾千種商品也很好找。<br>
+    新進一款鞋：按「快速建立款式」，填一次顏色和尺寸，系統自動產生每一個規格（例如 2 色 × 9 個尺寸＝18 個）。<br>大量商品：從 Excel 複製貼上「批次匯入」。</div>
+    <div class="row"><button class="b gold sm" onclick="genForm()">＋ 快速建立款式</button><button class="b sm" onclick="importForm()">📥 從 Excel 批次匯入</button><button class="b ghost sm" onclick="editRow('products')">＋ 單一商品</button></div>
+    <div class="row" style="margin-top:10px"><input class="grow" placeholder="🔍 搜尋" value="${esc(S.spQ||'')}" onchange="S.spQ=this.value;render()"><select onchange="S.spCat=this.value;render()"><option value="">全部分類</option>${act('categories').map(c=>opt(c.id,c.name,S.spCat)).join('')}</select></div></div>
+    ${shown.map((k,i)=>{const l=list.filter(p=>gk(p)===k).sort((a,b)=>cOf(a).localeCompare(cOf(b))||sizeCmp(a.size,b.size));const p0=l[0];const pr=l.map(p=>+p.price);const lo=Math.min(...pr),hi=Math.max(...pr);const open=S.spOpen===k;
+      return `<div class="grp"><div class="gh" onclick="spToggle(${i})"><div class="grow"><b>${esc(bOf(p0))}　${esc(mOf(p0))}</b><div class="mut">${esc(catName(p0.categoryId))}｜${l.length} 個規格｜${lo===hi?money(lo):money(lo)+'~'+money(hi)}${l.some(p=>p.active===false)?'｜含停用':''}</div></div><span>${open?'▲':'▼'}</span></div>
+      ${open?`<div class="row" style="padding:8px 10px"><button class="b sm" onclick="modelEdit(${i})">✏️ 整款修改（價格等）</button><button class="b ghost sm" onclick="genForm(${i})">＋ 加顏色／尺寸</button></div>${l.map(p=>`<div class="li"><div class="grow">${esc(cOf(p))}・${esc(p.size||'單一')} <span class="mut">${money(p.price)}${p.barcode?'｜條碼 '+esc(p.barcode):''}${p.sku?'｜'+esc(p.sku):''}</span> ${p.active===false?'<span class="tag red">停用</span>':''}</div><button class="b ghost sm" onclick="editRow('products','${p.id}')">編輯</button></div>`).join('')}`:''}</div>`}).join('')||'<div class="card mut">沒有符合的商品</div>'}
+    ${keys.length>80?`<div class="mut">共 ${keys.length} 款，先顯示 80 款，請用搜尋縮小範圍。</div>`:''}`}
+function spToggle(i){const k=S._spG[i];S.spOpen=S.spOpen===k?'':k;render()}
+const splitList=s=>String(s||'').split(/[,，、\s]+/).map(x=>x.trim()).filter(Boolean);
+function expandSizes(s){const out=[];splitList(s).forEach(t=>{const m=t.match(/^(\d+(?:\.\d+)?)[-~～](\d+(?:\.\d+)?)$/);if(m){const a=+m[1],b=+m[2];const stp=(a%1||b%1)||b-a<=8?0.5:1;for(let x=a;x<=b+1e-9;x+=stp)out.push(String(+x.toFixed(1)))}else out.push(t)});return uniq(out)}
+function genForm(i){const p0=i!==undefined?DB.products.find(p=>gk(p)===S._spG[i]):null;
+  openModal(`<h2>${p0?'＋ 加顏色／尺寸':'＋ 快速建立款式'}</h2><p class="mut">填一次，系統自動產生「每個顏色 × 每個尺寸」。已經存在的規格會自動跳過。</p>
+    <label class="f">分類 *</label><select id="gn-cat">${act('categories').map(c=>opt(c.id,c.name,p0?.categoryId)).join('')}</select>
+    <label class="f">品牌</label><input id="gn-brand" value="${esc(p0?.brand||'')}" placeholder="例如：YONEX">
+    <label class="f">款式名稱 *</label><input id="gn-model" value="${esc(p0?mOf(p0):'')}" placeholder="例如：POWER CUSHION 65Z3">
+    <label class="f">顏色（用逗號或空白分開，沒有就留空）</label><input id="gn-color" placeholder="例如：白, 黑, 白紅" oninput="genPrev()">
+    <label class="f">尺寸（用逗號分開，沒有就留空）</label><input id="gn-size" placeholder="例如：24-28　或　S, M, L, XL" oninput="genPrev()">
+    <div class="mut">鞋子可以填「24-28」，會自動產生 24、24.5、25…28</div>
+    <div class="row"><div class="grow"><label class="f">售價 *</label><input id="gn-price" type="number" value="${p0?.price??''}"></div><div class="grow"><label class="f">進價</label><input id="gn-cost" type="number" value="${p0?.cost??''}"></div><div class="grow"><label class="f">安全庫存</label><input id="gn-safe" type="number" value="${p0?.safety??''}"></div></div>
+    <div id="gn-prev" class="help" style="margin-top:10px"></div>
+    <div class="row" style="margin-top:12px"><button class="b" onclick="genSave()">建立</button><button class="b ghost" onclick="closeModal()">取消</button></div>`);genPrev()}
+function genCombos(){const cs=splitList($('#gn-color').value),ss=expandSizes($('#gn-size').value);const out=[];(cs.length?cs:['']).forEach(c=>(ss.length?ss:['']).forEach(s=>out.push([c,s])));return out}
+function genPrev(){const cb=genCombos();$('#gn-prev').innerHTML=`會產生 <b>${cb.length}</b> 個規格${cb.length>1?'：'+esc(cb.slice(0,12).map(x=>x.filter(Boolean).join('/')).join('、'))+(cb.length>12?'…':''):''}`}
+async function genSave(){const cat=$('#gn-cat').value,brand=$('#gn-brand').value.trim(),model=$('#gn-model').value.trim(),price=$('#gn-price').value;
+  if(!cat||!model||price==='')return toast('分類、款式名稱、售價要填');
+  const ex=new Set(DB.products.map(p=>[p.categoryId,p.brand||'',mOf(p),p.color||'',p.size||''].join('|')));const ops=[];let skip=0;
+  genCombos().forEach(([c,s])=>{if(ex.has([cat,brand,model,c,s].join('|'))){skip++;return}
+    ops.push({op:'put',table:'products',row:{id:uid('G'),categoryId:cat,brand,model,color:c,size:s,name:'',sku:'',barcode:'',price:+price,cost:$('#gn-cost').value===''?'':+$('#gn-cost').value,safety:$('#gn-safe').value===''?0:+$('#gn-safe').value,bonusType:'inherit',bonusValue:'',active:true}})});
+  if(!ops.length)return toast('這些規格都已經存在了');
+  if(await Store.batch(ops)){closeModal();S.spOpen=cat+'|'+(brand||'（無品牌）')+'|'+model;toast(`✅ 建立 ${ops.length} 個規格${skip?`，跳過 ${skip} 個已存在`:''}`);render()}}
+function modelEdit(i){const k=S._spG[i];const l=DB.products.filter(p=>gk(p)===k);const p0=l[0];S._meKey=k;
+  openModal(`<h2>✏️ 整款修改</h2><p class="mut">${esc(bOf(p0))} ${esc(mOf(p0))}，共 ${l.length} 個規格。<b>留空的欄位＝不修改</b>。</p>
+    <label class="f">分類</label><select id="me-cat"><option value="">（不修改）</option>${act('categories').map(c=>opt(c.id,c.name)).join('')}</select>
+    <label class="f">品牌</label><input id="me-brand" placeholder="${esc(p0.brand||'')}"><label class="f">款式名稱</label><input id="me-model" placeholder="${esc(mOf(p0))}">
+    <div class="row"><div class="grow"><label class="f">售價</label><input id="me-price" type="number" placeholder="${p0.price}"></div><div class="grow"><label class="f">進價</label><input id="me-cost" type="number" placeholder="${p0.cost??''}"></div><div class="grow"><label class="f">安全庫存</label><input id="me-safe" type="number" placeholder="${p0.safety??''}"></div></div>
+    <label class="f">上架狀態</label><select id="me-act"><option value="">（不修改）</option>${opt('true','全部上架')}${opt('false','全部停用（下架）')}</select>
+    <div class="row" style="margin-top:14px"><button class="b" onclick="modelSave()">套用到整款</button><button class="b ghost" onclick="closeModal()">取消</button></div>`)}
+async function modelSave(){const l=DB.products.filter(p=>gk(p)===S._meKey);const ch={};const v=id=>$(id).value.trim();
+  if(v('#me-cat'))ch.categoryId=v('#me-cat');if(v('#me-brand'))ch.brand=v('#me-brand');if(v('#me-model'))ch.model=v('#me-model');
+  if(v('#me-price'))ch.price=+v('#me-price');if(v('#me-cost'))ch.cost=+v('#me-cost');if(v('#me-safe'))ch.safety=+v('#me-safe');if(v('#me-act'))ch.active=v('#me-act')==='true';
+  if(!Object.keys(ch).length)return toast('沒有要修改的欄位');
+  if(await Store.batch(l.map(p=>({op:'put',table:'products',row:{id:p.id,...ch}})))){closeModal();S.spOpen='';toast(`✅ 已更新 ${l.length} 個規格`);render()}}
+function importForm(){const vn=act('venues').map(v=>v.name);
+  openModal(`<h2>📥 從 Excel 批次匯入</h2><div class="help">1. 在 Excel／Google 試算表把資料整理成這些欄位（第一列是標題，順序不拘，沒有的欄位可以不放）：<br>
+    <b>分類、品牌、款式、顏色、尺寸、售價、進價、安全庫存、條碼、編號</b><br>
+    想一起匯入期初庫存，就再加館名當欄位：<b>${esc(vn.join('、'))}</b><br>
+    2. 全選複製，貼到下面。<br>3. 同一個條碼／編號（或同品牌＋款式＋顏色＋尺寸）已經存在的，會<b>更新</b>，不會重複建立。</div>
+    <textarea id="im-txt" rows="8" placeholder="分類	品牌	款式	顏色	尺寸	售價	${esc(vn.join('	'))}"></textarea>
+    <div class="row" style="margin-top:10px"><button class="b" onclick="importPrev()">先預覽</button><button class="b ghost" onclick="closeModal()">取消</button></div><div id="im-res"></div>`)}
+function importPrev(){const txt=$('#im-txt').value.trim();if(!txt)return toast('請先貼上資料');
+  const lines=txt.split(/\r?\n/).filter(l=>l.trim());const sep=lines[0].includes('\t')?'\t':',';const head=lines[0].split(sep).map(s=>s.trim());const col=k=>head.indexOf(k);
+  if(col('款式')<0&&col('品名')<0)return alertBox('第一列要有欄位標題，至少要有「款式」（或「品名」）');
+  const vcols=act('venues').map(v=>[v,col(v.name)]).filter(x=>x[1]>=0);
+  const ops=[],catOps=[],cats={};act('categories').forEach(c=>cats[c.name]=c.id);DB.categories.forEach(c=>{if(!(c.name in cats))cats[c.name]=c.id});
+  const idx={};const key=p=>[p.barcode?'B:'+p.barcode:'',p.sku?'K:'+p.sku:'','M:'+[p.brand||'',mOf(p),p.color||'',p.size||''].join('|')];
+  DB.products.forEach(p=>key(p).forEach(k=>{if(k)idx[k]=p}));
+  let add=0,upd=0,stockN=0,bad=0;const num=s=>{const n=Number(String(s).replace(/[$,，\s]/g,''));return isNaN(n)?null:n};
+  lines.slice(1).forEach(line=>{const c=line.split(sep);const g=k=>{const i=col(k);return i>=0?String(c[i]??'').trim():''};
+    const model=g('款式')||g('品名');if(!model){bad++;return}
+    const cn=g('分類')||'未分類';if(!(cn in cats)){const id=uid('CA');cats[cn]=id;catOps.push({op:'put',table:'categories',row:{id,name:cn,bonusType:'none',bonusValue:0,active:true}})}
+    const r={categoryId:cats[cn],brand:g('品牌'),model,color:g('顏色'),size:g('尺寸'),barcode:g('條碼'),sku:g('編號')};
+    [['price','售價'],['cost','進價'],['safety','安全庫存']].forEach(([k,l])=>{const n=num(g(l));if(g(l)!==''&&n!==null)r[k]=n});
+    const ex=key({...r,name:''}).map(k=>k&&idx[k]).find(Boolean);let id;
+    if(ex){id=ex.id;const ch={id};Object.entries(r).forEach(([k,v])=>{if(v!=='')ch[k]=v});ops.push({op:'put',table:'products',row:ch});upd++}
+    else{if(r.price===undefined){bad++;return}id=uid('G');const row={id,name:'',cost:'',safety:0,bonusType:'inherit',bonusValue:'',active:true,...r};ops.push({op:'put',table:'products',row});key(row).forEach(k=>{if(k)idx[k]=row});add++}
+    vcols.forEach(([v,i])=>{const n=num(c[i]);if(n&&n>0){ops.push({op:'put',table:'moves',row:{id:uid('M'),date:today(),time:nowStr(),type:'in',productId:id,fromVenue:'',toVenue:v.id,qty:Math.round(n),reason:'期初庫存（匯入）',note:'',by:me().id}});stockN++}})});
+  S._import=[...catOps,...ops];
+  $('#im-res').innerHTML=`<div class="help" style="margin-top:10px">預覽結果：<br>・新增商品 <b>${add}</b> 個${catOps.length?`（含新分類 ${catOps.length} 個：${esc(catOps.map(o=>o.row.name).join('、'))}，記得去設定獎金規則）`:''}<br>・更新商品 <b>${upd}</b> 個<br>・期初庫存 <b>${stockN}</b> 筆${bad?`<br>・<span class="low">略過 ${bad} 列（沒有款式，或新商品沒有售價）</span>`:''}</div>
+    <button class="b gold big" onclick="importDo()" ${S._import.length?'':'disabled'}>確認匯入</button>`}
+async function importDo(){const ops=S._import||[];if(!ops.length)return;const b=$('#im-res button');if(b){b.disabled=true;b.textContent='匯入中，商品多的話要等一下…'}
+  if(await Store.batch(ops)){closeModal();toast('✅ 匯入完成');render()}}
+
 function vSettings(){const sub=S.setSub||'venues';
   const subs=[['venues','球館'],['staff','人員'],['categories','分類＆獎金'],['products','商品'],['payments','付款方式'],['targets','業績目標'],['sys','系統']];
-  return `<div class="sub">${subs.map(([k,l])=>`<span class="chip ${sub===k?'on':''}" onclick="S.setSub='${k}';render()">${l}</span>`).join('')}</div>${sub==='sys'?vSys():vTable(sub)}`}
+  return `<div class="sub">${subs.map(([k,l])=>`<span class="chip ${sub===k?'on':''}" onclick="S.setSub='${k}';render()">${l}</span>`).join('')}</div>${sub==='sys'?vSys():sub==='products'?vProducts():vTable(sub)}`}
 function vTable(t){const sc=SCHEMA[t];const rows=[...DB[t]].sort(byOrder);
   return `<div class="card"><div class="row"><h2 class="grow">${sc.title}</h2><button class="b gold sm" onclick="editRow('${t}')">＋ 新增</button></div><div class="help">${sc.help}</div>
     ${rows.length?rows.map(r=>`<div class="li"><div class="grow">${SUM[t](r)} ${r.active===false?'<span class="tag red">停用</span>':''}</div><button class="b ghost sm" onclick="editRow('${t}','${r.id}')">編輯</button></div>`).join(''):'<div class="mut">還沒有資料，按「新增」開始</div>'}</div>`}
@@ -451,7 +596,7 @@ function vSys(){const s=sysSet();
 async function saveSys(){const ops=[['companyName',$('#sy-name').value.trim()||'藏龍體育'],['allowPriceEdit',$('#sy-price').value],['allowNegative',$('#sy-neg').value],['teamSplit',$('#sy-split').value]].map(([id,value])=>({op:'put',table:'settings',row:{id,value}}));
   if(await Store.batch(ops)){toast('規則已儲存');render()}}
 function backup(){download(`藏龍庫存備份_${today()}.json`,JSON.stringify(DB,null,1),'application/json')}
-async function resetDemo(){if(!await confirmBox('把試用資料全部清掉，回到範例狀態？'))return;lsSet('cl_demo','');seed();saveDemo();render();toast('已重設')}
+async function resetDemo(){if(!await confirmBox('把試用資料全部清掉，回到範例狀態？'))return;lsSet('cl_demo_v2','');seed();saveDemo();render();toast('已重設')}
 function saveApi(){lsSet('cl_api',$('#sy-api').value.trim());lsSet('cl_session','');location.reload()}
 
 const VIEWS={sell:vSell,stock:vStock,records:vRecords,recon:vRecon,bonus:vBonus,settings:vSettings};
@@ -462,17 +607,21 @@ function seed(){
   ['一館','二館','三館','四館'].forEach((n,i)=>DB.venues.push({id:'V'+(i+1),name:n,order:i+1,active:true}));
   ['現金','LINE Pay','轉帳','刷卡'].forEach((n,i)=>DB.payments.push({id:'P'+(i+1),name:n,order:i+1,active:true}));
   DB.categories=[{id:'C1',name:'羽球',bonusType:'pct',bonusValue:3,order:1,active:true},{id:'C2',name:'球拍',bonusType:'pct',bonusValue:5,order:2,active:true},{id:'C3',name:'配件',bonusType:'fixed',bonusValue:5,order:3,active:true},{id:'C4',name:'飲料',bonusType:'none',bonusValue:0,order:4,active:true}];
-  const PR=[['比賽級羽球（一打）','C1',780,520,10],['練習級羽球（一打）','C1',450,300,10],['入門碳纖維球拍','C2',1800,1100,2],['進階碳纖維球拍','C2',3600,2400,2],['握把布','C3',80,35,15],['運動毛巾','C3',250,120,5],['羽球襪','C3',180,80,6],['運動飲料','C4',35,18,24],['礦泉水','C4',20,8,24]];
-  PR.forEach(([name,c,price,cost,safety],i)=>DB.products.push({id:'G'+(i+1),sku:'CL'+String(i+1).padStart(3,'0'),name,categoryId:c,price,cost,safety,bonusType:'inherit',bonusValue:'',order:i+1,active:true}));
+  const PR=[['比賽級羽球（一打）','C1',780,520,10],['練習級羽球（一打）','C1',450,300,10],['入門碳纖維球拍','C2',1800,1100,2],['進階碳纖維球拍','C2',3600,2400,2],['握把布','C3',80,35,15],['運動毛巾','C3',250,120,5],['運動飲料','C4',35,18,24],['礦泉水','C4',20,8,24]];
+  const BR={C1:'藏龍嚴選',C2:'藏龍嚴選',C3:'藏龍嚴選',C4:''};
+  PR.forEach(([model,c,price,cost,safety],i)=>DB.products.push({id:'G'+(i+1),sku:'CL'+String(i+1).padStart(3,'0'),barcode:'47100000'+String(i+1).padStart(4,'0'),name:'',brand:BR[c],model,color:'',size:'',categoryId:c,price,cost,safety,bonusType:'inherit',bonusValue:'',active:true}));
+  DB.categories.push({id:'C5',name:'球鞋',bonusType:'fixed',bonusValue:50,order:5,active:true},{id:'C6',name:'服飾',bonusType:'pct',bonusValue:5,order:6,active:true});
+  const VAR=[['C5','YONEX','POWER CUSHION 65Z3',['白','黑','白紅'],expandSizes('24-28'),3880],['C5','VICTOR','A970ACE',['白藍','黑金'],expandSizes('24-28'),3580],['C5','LI-NING','雷霆 AYZS',['白','藍'],expandSizes('25-28'),3280],['C6','藏龍','館服排汗衫',['黑','白','墨綠'],['S','M','L','XL','2XL'],590],['C6','YONEX','比賽短褲',['黑','深藍'],['S','M','L','XL'],980]];
+  let gi=100;VAR.forEach(([c,brand,model,cols,sizes,price])=>cols.forEach(col=>sizes.forEach(sz=>{gi++;DB.products.push({id:'G'+gi,sku:'',barcode:'4710000'+gi,name:'',brand,model,color:col,size:sz,categoryId:c,price,cost:Math.round(price*.62),safety:1,bonusType:'inherit',bonusValue:'',active:true})})));
   DB.staff=[{id:'U0',name:'于蜜',role:'admin',venueId:'',pin:'0000',order:1,active:true},{id:'U1',name:'溫主管',role:'manager',venueId:'',pin:'1111',order:2,active:true},{id:'U2',name:'會計示範',role:'accountant',venueId:'',pin:'2222',order:3,active:true},
     {id:'U3',name:'小林',role:'staff',venueId:'V1',pin:'3333',order:4,active:true},{id:'U4',name:'小陳',role:'staff',venueId:'V2',pin:'4444',order:5,active:true},{id:'U5',name:'小王',role:'staff',venueId:'V3',pin:'5555',order:6,active:true},{id:'U6',name:'小張',role:'staff',venueId:'V4',pin:'6666',order:7,active:true}];
   DB.targets=DB.venues.map((v,i)=>({id:'T'+(i+1),venueId:v.id,target:[30000,50000,30000,45000][i],rewardType:'fixed',rewardValue:1500}));
   DB.settings=[{id:'companyName',value:'藏龍體育'},{id:'allowPriceEdit',value:'true'},{id:'allowNegative',value:'false'},{id:'teamSplit',value:'equal'}];
   const ago=n=>dstr(new Date(Date.now()-n*864e5));
-  DB.venues.forEach(v=>DB.products.forEach(p=>DB.moves.push({id:uid('M'),date:ago(12),time:ago(12)+' 10:00',type:'in',productId:p.id,fromVenue:'',toVenue:v.id,qty:(p.categoryId==='C2'?8:30)+Math.floor(Math.random()*20),reason:'期初庫存',note:'範例資料',by:'U1'})));
+  DB.venues.forEach(v=>DB.products.forEach(p=>DB.moves.push({id:uid('M'),date:ago(12),time:ago(12)+' 10:00',type:'in',productId:p.id,fromVenue:'',toVenue:v.id,qty:p.size?Math.floor(Math.random()*4):(p.categoryId==='C2'?8:30)+Math.floor(Math.random()*20),reason:'期初庫存',note:'範例資料',by:'U1'})));
   const rnd=a=>a[Math.floor(Math.random()*a.length)];
   for(let d=9;d>=0;d--)DB.venues.forEach((v,vi)=>{const n=1+Math.floor(Math.random()*4);for(let k=0;k<n;k++){
-    const items=[];const cnt=1+Math.floor(Math.random()*2);for(let j=0;j<cnt;j++){const p=rnd(DB.products);if(items.find(i=>i.productId===p.id))continue;const qty=p.categoryId==='C2'?1:1+Math.floor(Math.random()*3);const sub=p.price*qty;items.push({productId:p.id,name:p.name,price:p.price,qty,subtotal:sub,bonus:calcLineBonus(p,sub,qty)})}
+    const items=[];const cnt=1+Math.floor(Math.random()*2);for(let j=0;j<cnt;j++){const p=rnd(DB.products);if(items.find(i=>i.productId===p.id))continue;if(p.size&&Math.random()<.85)continue;const qty=p.size||p.categoryId==='C2'?1:1+Math.floor(Math.random()*3);const sub=p.price*qty;items.push({productId:p.id,name:pLabel(p),price:p.price,qty,subtotal:sub,bonus:calcLineBonus(p,sub,qty)})}
     const hh=10+Math.floor(Math.random()*11);
     DB.sales.push({id:uid('S'),date:ago(d),time:ago(d)+' '+pad(hh)+':'+pad(Math.floor(Math.random()*60)),venueId:v.id,staffId:'U'+(3+vi),items,total:items.reduce((a,i)=>a+i.subtotal,0),paymentId:rnd(['P1','P1','P2','P3']),note:'',status:'ok',createdBy:'U'+(3+vi)})}});
   for(let d=9;d>=2;d--)DB.venues.forEach(v=>{const date=ago(d);const exp=expectedFor(date,v.id);const et=sumObj(exp);if(!et)return;const actual={...exp};let note='';
