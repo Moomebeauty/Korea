@@ -102,6 +102,12 @@ const MODE=()=>API?'cloud':'demo';
 const S={tab:'sell'};
 let CART=[];
 
+const pLabel=p=>p?(p.name||[p.brand,p.model,p.color,p.size].filter(Boolean).join(' ')):'（已刪除）';
+const bOf=p=>p.brand||'（無品牌）',mOf=p=>p.model||p.name||'（未命名）',cOf=p=>p.color||'（單一顏色）';
+const uniq=a=>[...new Set(a)];
+const jsq=s=>esc(JSON.stringify(String(s)));
+const SZ=['XXS','XS','S','M','L','XL','2XL','XXL','3XL','4XL','F','FREE'];
+function sizeCmp(a,b){a=String(a||'');b=String(b||'');const na=parseFloat(a),nb=parseFloat(b);if(!isNaN(na)&&!isNaN(nb))return na-nb;const ia=SZ.indexOf(a.toUpperCase()),ib=SZ.indexOf(b.toUpperCase());if(ia>=0&&ib>=0)return ia-ib;return a.localeCompare(b)}
 const byId=(t,id)=>DB[t].find(r=>r.id===id);
 const byOrder=(a,b)=>((+a.order||999)-(+b.order||999))||String(a.name||'').localeCompare(String(b.name||''));
 const act=t=>DB[t].filter(r=>r.active!==false).sort(byOrder);
